@@ -6,11 +6,35 @@ import { prisma } from './db';
 import { hashPassword, randomToken, sha256, verifyPassword } from './crypto';
 import { getSettings } from './settings';
 import { passwordProblem } from './password';
-import { isProd } from './env';
 
 export const SESSION_COOKIE = '__Host-hytte_session';
-// __Host- requires Secure, which breaks plain-HTTP LAN access during development.
-export const sessionCookieName = () => (isProd() ? SESSION_COOKIE : 'hytte_session');
+export const INSECURE_SESSION_COOKIE = 'hytte_session';
+
+/**
+ * Cookie security follows the request protocol, not NODE_ENV. A production
+ * deployment served over plain HTTP still cannot set a Secure or __Host-
+ * cookie: the browser drops it silently and every request looks signed out,
+ * which shows up as an endless bounce back to /logg-inn.
+ *
+ * Detection is x-forwarded-proto, so a TLS-terminating proxy must set it.
+ */
+async function requestIsHttps(): Promise<boolean> {
+  const h = await headers();
+  return h.get('x-forwarded-proto') === 'https';
+}
+
+export async function sessionCookieName(): Promise<string> {
+  return (await requestIsHttps()) ? SESSION_COOKIE : INSECURE_SESSION_COOKIE;
+}
+
+/**
+ * Read the token under either name, so sessions issued before TLS was put in
+ * front keep working afterwards instead of logging everyone out at once.
+ */
+async function readSessionToken(): Promise<string | undefined> {
+  const store = await cookies();
+  return store.get(SESSION_COOKIE)?.value ?? store.get(INSECURE_SESSION_COOKIE)?.value;
+}
 
 export type SessionUser = Pick<User, 'id' | 'email' | 'name' | 'role' | 'mustChangePassword'>;
 
@@ -35,10 +59,11 @@ export async function createSession(userId: string): Promise<void> {
   });
 
   const store = await cookies();
-  store.set(sessionCookieName(), token, {
+  const https = await requestIsHttps();
+  store.set(https ? SESSION_COOKIE : INSECURE_SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: isProd(),
+    secure: https,
     path: '/',
     expires: expiresAt,
   });
@@ -46,18 +71,18 @@ export async function createSession(userId: string): Promise<void> {
 
 export async function destroySession(): Promise<void> {
   const store = await cookies();
-  const token = store.get(sessionCookieName())?.value;
+  const token = await readSessionToken();
   if (token) {
     await prisma.session.deleteMany({ where: { tokenHash: sha256(token) } });
   }
-  store.delete(sessionCookieName());
+  store.delete(SESSION_COOKIE);
+  store.delete(INSECURE_SESSION_COOKIE);
 }
 
 let lastSweep = 0;
 
 export async function getCurrentUser(): Promise<SessionUser | null> {
-  const store = await cookies();
-  const token = store.get(sessionCookieName())?.value;
+  const token = await readSessionToken();
   if (!token) return null;
 
   const session = await prisma.session.findUnique({
@@ -179,8 +204,7 @@ export async function changePassword(userId: string, current: string, next: stri
     data: { passwordHash: await hashPassword(next), mustChangePassword: false },
   });
   // Invalidate every other session for this user.
-  const store = await cookies();
-  const token = store.get(sessionCookieName())?.value;
+  const token = await readSessionToken();
   await prisma.session.deleteMany({
     where: { userId, ...(token ? { NOT: { tokenHash: sha256(token) } } : {}) },
   });
