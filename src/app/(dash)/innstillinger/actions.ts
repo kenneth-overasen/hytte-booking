@@ -11,6 +11,7 @@ import { testConnection, discoverCalendars, syncAllBookings, syncDirtyBookings }
 import { testTibber } from '@/lib/tibber';
 import { testSmtp } from '@/lib/mail';
 import { userInputSchema } from '@/lib/validation';
+import { parseKronerToOre } from '@/lib/money';
 import { exportBackup, importBackup } from '@/lib/backup';
 
 export type SettingsState = { error?: string; success?: string; detail?: string };
@@ -39,6 +40,18 @@ const BOOLEAN_FIELDS: Record<SettingsKey, string[]> = {
   security: [],
 };
 
+/**
+ * Money is shown and typed in kroner but stored as integer ore. The form posts
+ * a formatted Norwegian amount ("3 000"), which z.coerce.number() turns into
+ * NaN, so it has to go through the same parser the preset and booking forms
+ * use. This cannot live in the schema: getSettings() re-parses stored ore
+ * through it on every read, and a kroner conversion there would multiply the
+ * stored value by 100 each time.
+ */
+const KRONER_FIELDS: Partial<Record<SettingsKey, string[]>> = {
+  bookingDefaults: ['defaultDepositOre', 'defaultNightlyOre'],
+};
+
 async function guard(key: SettingsKey) {
   return SETTINGS[key].adminOnly ? requireAdmin() : requireUser();
 }
@@ -49,7 +62,15 @@ export async function saveSettingsAction(_prev: SettingsState, fd: FormData): Pr
 
   const user = await guard(key);
   try {
-    await saveSettings(key, formToObject(fd, BOOLEAN_FIELDS[key]), user.id);
+    const data = formToObject(fd, BOOLEAN_FIELDS[key]);
+    for (const field of KRONER_FIELDS[key] ?? []) {
+      const raw = data[field];
+      if (typeof raw !== 'string') continue;
+      const ore = parseKronerToOre(raw);
+      if (ore === null) return { error: `${field}: ugyldig bel\u00f8p.` };
+      data[field] = ore;
+    }
+    await saveSettings(key, data, user.id);
     await audit(user, 'settings.save', 'Setting', key);
     revalidatePath('/innstillinger');
     revalidatePath('/');
