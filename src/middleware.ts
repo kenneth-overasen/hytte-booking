@@ -21,7 +21,9 @@ export function middleware(request: NextRequest) {
     "base-uri 'none'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    'upgrade-insecure-requests',
+    // Only when TLS is actually terminated in front of the app. Over plain HTTP
+    // this upgrades same-origin subresources to https:// and they fail to load.
+    ...(isHttps ? ['upgrade-insecure-requests'] : []),
   ].join('; ');
 
   response.headers.set('Content-Security-Policy', csp);
