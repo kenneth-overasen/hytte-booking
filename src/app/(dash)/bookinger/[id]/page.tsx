@@ -107,7 +107,7 @@ export default async function BookingDetailPage({
               </Alert>
             )}
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-start gap-2">
               <LinkButton
                 href={`/api/bookinger/${booking.id}/kontrakt.pdf`}
                 target="_blank"

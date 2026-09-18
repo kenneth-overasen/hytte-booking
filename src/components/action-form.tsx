@@ -30,24 +30,46 @@ export function ActionForm({
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(action, {});
 
+  const button = (
+    <Button type="submit" variant={variant} disabled={pending}>
+      {pending ? (pendingLabel ?? 'Jobber …') : label}
+    </Button>
+  );
+
   return (
-    <form
-      action={formAction}
-      className={`space-y-2 ${className}`}
-      onSubmit={(e) => {
-        if (confirm && !window.confirm(confirm)) e.preventDefault();
-      }}
-    >
-      {Object.entries(hidden).map(([k, v]) => (
-        <input key={k} type="hidden" name={k} value={v} />
-      ))}
-      {children}
-      <Button type="submit" variant={variant} disabled={pending}>
-        {pending ? (pendingLabel ?? 'Jobber …') : label}
-      </Button>
-      {state.error && <Alert kind="error">{state.error}</Alert>}
-      {state.success && <Alert kind="success">{state.success}</Alert>}
-    </form>
+    <>
+      <form
+        action={formAction}
+        className={className}
+        onSubmit={(e) => {
+          if (confirm && !window.confirm(confirm)) e.preventDefault();
+        }}
+      >
+        {/* Outside the spaced wrapper: space-y-* targets every child, so a
+            hidden input still pushes the button down by the gap. */}
+        {Object.entries(hidden).map(([k, v]) => (
+          <input key={k} type="hidden" name={k} value={v} />
+        ))}
+        {children ? (
+          <div className="space-y-2">
+            {children}
+            {button}
+          </div>
+        ) : (
+          button
+        )}
+      </form>
+
+      {/* A sibling, not a form child: inside a button row it then takes a full
+          line of its own below every button instead of stretching the row and
+          displacing them. order/basis are inert outside a flex container. */}
+      {(state.error || state.success) && (
+        <div className="order-last basis-full">
+          {state.error && <Alert kind="error">{state.error}</Alert>}
+          {state.success && <Alert kind="success">{state.success}</Alert>}
+        </div>
+      )}
+    </>
   );
 }
 
