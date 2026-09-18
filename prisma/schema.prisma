@@ -1,0 +1,246 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------- auth
+
+enum Role {
+  ADMIN
+  OPERATOR
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         Role      @default(OPERATOR)
+  active       Boolean   @default(true)
+  mustChangePassword Boolean @default(false)
+  lastLoginAt  DateTime?
+  failedLogins Int       @default(0)
+  lockedUntil  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions Session[]
+  audits   AuditLog[]
+
+  @@index([email])
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  // SHA-256 of the opaque cookie token; the raw token never touches the DB.
+  tokenHash  String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  userAgent  String?
+  ip         String?
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------- pricing
+
+enum Season {
+  ANY
+  SUMMER
+  EASTER
+  CHRISTMAS
+  OFFSEASON
+}
+
+enum PricingMode {
+  FIXED
+  PER_NIGHT
+}
+
+model Preset {
+  id            String      @id @default(cuid())
+  name          String
+  description   String?
+  season        Season      @default(ANY)
+  pricingMode   PricingMode @default(FIXED)
+  // All money is stored as integer øre to avoid float drift.
+  priceOre      Int
+  depositOre    Int?
+  minNights     Int?
+  maxNights     Int?
+  // ISO weekday the stay must start on (1 = Monday .. 7 = Sunday). Null = any.
+  startWeekday  Int?
+  // "HH:mm" in Europe/Oslo. Null = fall back to the system default.
+  checkInTime   String?
+  checkOutTime  String?
+  // Higher wins when several presets match.
+  priority      Int         @default(0)
+  active        Boolean     @default(true)
+  sortOrder     Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  bookings Booking[]
+
+  @@index([active, season])
+}
+
+// ---------------------------------------------------------------- bookings
+
+enum BookingStatus {
+  TENTATIVE
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum ContractStatus {
+  NONE
+  DRAFT
+  SENT
+  SIGNED
+  DECLINED
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  reference   String        @unique
+  guestName   String
+  // Optional: a booking taken over the phone may have neither yet.
+  phone       String?
+  email       String?
+  address     String?
+  // timestamptz so the overlap exclusion constraint can index the range
+  // directly; always rendered in Europe/Oslo.
+  checkIn     DateTime      @db.Timestamptz(3)
+  checkOut    DateTime      @db.Timestamptz(3)
+  guests      Int?
+  status      BookingStatus @default(TENTATIVE)
+  notes       String?
+
+  presetId    String?
+  preset      Preset?       @relation(fields: [presetId], references: [id], onDelete: SetNull)
+  // Snapshot of the preset name at booking time, so history survives preset edits.
+  presetName  String?
+  // True when the operator pinned a rule by hand. When false the rule above is
+  // simply the one that matched, and re-editing the dates re-evaluates it.
+  presetLocked Boolean      @default(false)
+
+  priceOre        Int
+  suggestedPriceOre Int?
+  priceOverridden Boolean @default(false)
+  overrideReason  String?
+  season          Season  @default(ANY)
+
+  depositOre        Int     @default(0)
+  depositPaid       Boolean @default(false)
+  depositPaidAt     DateTime?
+  depositReturned   Boolean @default(false)
+  depositReturnedAt DateTime?
+  depositWithheldOre Int    @default(0)
+  depositNote       String?
+
+  rentPaid   Boolean   @default(false)
+  rentPaidAt DateTime?
+
+  contractStatus   ContractStatus @default(NONE)
+  contractHtml     String?
+  contractRendered DateTime?
+  contractSignedAt DateTime?
+  contractSignedBy String?
+  esignProvider    String?
+  esignReference   String?
+  esignUrl         String?
+
+  // Cached Tibber reading for the stay window.
+  powerKwh        Decimal? @db.Decimal(12, 3)
+  powerCostOre    Int?
+  powerFetchedAt  DateTime?
+  powerRaw        Json?
+  powerChargedOre Int?
+  // True: the power bill is settled out of the deposit. False: invoiced separately.
+  powerFromDeposit Boolean @default(true)
+
+  calendarUid      String   @unique @default(cuid())
+  calendarSyncedAt DateTime?
+  calendarEtag     String?
+  calendarHref     String?
+  calendarDirty    Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+
+  notifications NotificationLog[]
+
+  @@index([checkIn])
+  @@index([status])
+  @@index([email])
+}
+
+// ---------------------------------------------------------------- system
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  actorName String?
+  action    String
+  entity    String
+  entityId  String?
+  detail    Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entity, entityId])
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model NotificationLog {
+  id        String             @id @default(cuid())
+  event     String
+  bookingId String?
+  booking   Booking?           @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  recipient String
+  subject   String
+  status    NotificationStatus @default(PENDING)
+  error     String?
+  createdAt DateTime           @default(now())
+  sentAt    DateTime?
+
+  @@index([event, bookingId])
+  @@index([createdAt])
+}
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  ip        String
+  success   Boolean
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([ip, createdAt])
+}

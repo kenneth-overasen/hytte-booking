@@ -1,0 +1,87 @@
+name: hytte-booking
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hytte}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD må settes i .env}
+      POSTGRES_DB: ${POSTGRES_DB:-hytte}
+      # Deterministic collation so ordering is stable across host locales.
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hytte} -d ${POSTGRES_DB:-hytte}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Not published to the host: only the app container reaches the database.
+    expose:
+      - "5432"
+    networks: [internal]
+
+  # One-shot: applies pending database migrations, then exits. The app waits
+  # for it to succeed, so the schema is never behind the running code.
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # The entrypoint assembles DATABASE_URL from these, percent-encoding the
+      # credentials so passwords containing / + @ : work unchanged.
+      POSTGRES_USER: ${POSTGRES_USER:-hytte}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD må settes i .env}
+      POSTGRES_DB: ${POSTGRES_DB:-hytte}
+      DATABASE_PARAMS: schema=public
+    entrypoint: ["/app/docker/entrypoint.sh"]
+    command: ["npx", "prisma", "migrate", "deploy"]
+    networks: [internal]
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hytte}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD må settes i .env}
+      POSTGRES_DB: ${POSTGRES_DB:-hytte}
+      APP_SECRET: ${APP_SECRET:?APP_SECRET må settes i .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@hytte.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD må settes i .env}
+      ADMIN_NAME: ${ADMIN_NAME:-Administrator}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      ALLOW_WEAK_PASSWORDS: ${ALLOW_WEAK_PASSWORDS:-false}
+      TZ: Europe/Oslo
+      NODE_ENV: production
+    ports:
+      # Bind to loopback by default; change to 0.0.0.0 for LAN access.
+      - "${BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-3000}:3000"
+    networks: [internal]
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/.next/cache
+
+volumes:
+  db-data:
+
+networks:
+  internal:
+    driver: bridge

@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Blue palette: a crisp, slightly cool neutral with a confident blue accent.
+ * --accent-fg exists because the accent is dark in light mode and light in
+ * dark mode; white-on-accent would be unreadable in the latter.
+ */
+:root {
+  --bg: 243 246 251;
+  --surface: 255 255 255;
+  --border: 216 225 238;
+  --fg: 18 26 40;
+  --muted: 98 114 139;
+  --accent: 29 78 216;
+  --accent-fg: 255 255 255;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: 12 17 28;
+    --surface: 22 30 45;
+    --border: 44 57 79;
+    --fg: 226 234 246;
+    --muted: 142 157 180;
+    --accent: 106 168 255;
+    --accent-fg: 8 18 36;
+    color-scheme: dark;
+  }
+}
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  background: rgb(var(--bg));
+  color: rgb(var(--fg));
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-feature-settings: "tnum" 0;
+}
+
+/* Tabular figures wherever money or dates line up in a column. */
+.tnum { font-variant-numeric: tabular-nums; }
+
+input, select, textarea, button { font: inherit; }
+
+input[type="date"], input[type="time"] { min-height: 2.5rem; }
+
+/* The native date/time picker icon is near-invisible on a dark surface. */
+@media (prefers-color-scheme: dark) {
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) opacity(0.65);
+  }
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 2px;
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; color: #000; }
+}
