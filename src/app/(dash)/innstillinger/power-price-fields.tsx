@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Checkbox, Field, Input, Select } from '@/components/ui';
 
 const SPOT_PATH = 'summary.spot.inclVat';
@@ -28,6 +28,16 @@ export function PowerPriceFields({
   const [enabled, setEnabled] = useState(useFixedPrice);
   const [path, setPath] = useState(costPath);
 
+  // React resets the form's DOM fields after a server action. Every other
+  // checkbox here is uncontrolled, so it resets to defaultChecked - the value
+  // that was just saved - and looks right. A controlled box resets to unchecked
+  // while its state stays true, so checked={} never changes and React leaves the
+  // DOM alone: an empty box above fields that are still showing. Hence
+  // defaultChecked below, plus this resync so state follows a saved change.
+  useEffect(() => {
+    setEnabled(useFixedPrice);
+  }, [useFixedPrice]);
+
   function toggle(on: boolean) {
     setEnabled(on);
     if (on && path === SPOT_PATH) setPath(FIXED_PATH);
@@ -40,7 +50,7 @@ export function PowerPriceFields({
     <div className="space-y-4">
       <Checkbox
         name="useFixedPrice"
-        checked={enabled}
+        defaultChecked={useFixedPrice}
         onChange={(e) => toggle(e.target.checked)}
         label="Bruk fastpris per kWh"
         hint="Gjesten faktureres én avtalt pris i stedet for spotprisen. Prisen sendes med forespørselen, og tjenesten regner ut beløpet."
