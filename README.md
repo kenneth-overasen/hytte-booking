@@ -154,6 +154,20 @@ Kontrakten er en mal med `{{variabler}}` og `{{#if ...}}`-blokker, redigerbar
 under Innstillinger → Kontraktmal. Den genereres til PDF med norske tegn, topp-
 og bunntekst, sidetall og signaturfelt.
 
+Under samme fane kan du laste opp et bilde av utleiers signatur (JPG eller PNG,
+maks 2 MB). Bildet lagres i innstillingene — det følger altså med
+sikkerhetskopien og krever ingen skrivbar disk — og stemples over
+«Utleier»-linjen i hver genererte kontrakt, både ved nedlasting og ved utsending
+til signering. Høyden settes i punkter; bredden følger bildets proporsjoner.
+Uten opplastet bilde skrives kontrakten ut med tom signaturlinje som før.
+
+Bildet legges inn i PDF-en akkurat slik det ble lastet opp, uten
+bildebehandlingsbibliotek. Det eneste som endres er at EXIF-blokken fjernes fra
+JPEG-filer: PDF-lesere tolker rotasjonsmarkeringen der ulikt, så en signatur tatt
+med mobilkamera kunne ellers havne liggende på siden i den ferdige kontrakten.
+Uten blokken viser forhåndsvisningen i innstillingene nøyaktig det samme som
+PDF-en, og kamera- og GPS-data følger ikke med kontrakten ut til gjesten.
+
 Elektronisk signering ligger bak et grensesnitt i `src/lib/esign/index.ts`.
 To implementasjoner følger med:
 

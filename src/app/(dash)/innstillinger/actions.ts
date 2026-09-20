@@ -6,13 +6,14 @@ import { prisma } from '@/lib/db';
 import { requireAdmin, requireUser, createUser } from '@/lib/auth';
 import { passwordProblem } from '@/lib/password';
 import { audit } from '@/lib/audit';
-import { SETTINGS, saveSettings, NOTIFICATION_EVENTS, type SettingsKey } from '@/lib/settings';
+import { SETTINGS, getSettings, saveSettings, NOTIFICATION_EVENTS, type SettingsKey } from '@/lib/settings';
 import { testConnection, discoverCalendars, syncAllBookings, syncDirtyBookings } from '@/lib/caldav';
 import { testTibber } from '@/lib/tibber';
 import { testSmtp } from '@/lib/mail';
 import { userInputSchema } from '@/lib/validation';
 import { parseKronerToOre } from '@/lib/money';
 import { exportBackup, importBackup } from '@/lib/backup';
+import { normaliseSignature, type NormalisedSignature } from '@/lib/signature';
 
 export type SettingsState = { error?: string; success?: string; detail?: string };
 
@@ -41,6 +42,7 @@ const BOOLEAN_FIELDS: Record<SettingsKey, string[]> = {
   bookingDefaults: ['chargePowerSeparately'],
   season: [],
   contract: ['includePowerClause'],
+  signature: ['enabled'],
   notifications: [],
   tibber: ['enabled', 'mock', 'insecureTls', 'useFixedPrice', 'fixedPriceIncludesVat'],
   caldav: ['enabled', 'deleteOnCancel', 'includeGuestDetails', 'autoSync'],
@@ -118,6 +120,95 @@ export async function saveNotificationsAction(_prev: SettingsState, fd: FormData
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Kunne ikke lagre.' };
   }
+}
+
+// ------------------------------------------------------------ signature
+
+const NO_PICTURE = { image: '', format: 'png' as const, filename: '', width: 0, height: 0 };
+
+/**
+ * The stamped signature has its own group and its own form: the image is
+ * replaced by uploading a new file, so the contract form — which posts every
+ * field it owns — would otherwise wipe it on each ordinary save. The same
+ * action also clears the image, so that one form state covers both outcomes.
+ */
+export async function saveSignatureAction(_prev: SettingsState, fd: FormData): Promise<SettingsState> {
+  const user = await requireUser();
+  const current = await getSettings('signature');
+  const removing = fd.get('remove') === '1';
+  const file = fd.get('file');
+
+  // No file picked means this was a plain settings save, so the stored image
+  // and everything describing it carries over untouched.
+  let uploaded: NormalisedSignature | undefined;
+  let picture = removing
+    ? NO_PICTURE
+    : {
+        image: current.image,
+        format: current.format,
+        filename: current.filename,
+        width: current.width,
+        height: current.height,
+      };
+
+  if (!removing && file instanceof File && file.size > 0) {
+    try {
+      uploaded = normaliseSignature(Buffer.from(await file.arrayBuffer()));
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : 'Kunne ikke lese bildet.' };
+    }
+    picture = {
+      image: uploaded.base64,
+      format: uploaded.format,
+      filename: file.name,
+      width: uploaded.width,
+      height: uploaded.height,
+    };
+  }
+
+  try {
+    await saveSettings(
+      'signature',
+      { enabled: fd.get('enabled') === 'on', heightPt: fd.get('heightPt'), ...picture },
+      user.id,
+    );
+  } catch (err) {
+    if (typeof err === 'object' && err && 'issues' in err) {
+      const issues = (err as { issues: { path: unknown[]; message: string }[] }).issues;
+      return { error: issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(' · ') };
+    }
+    return { error: err instanceof Error ? err.message : 'Kunne ikke lagre.' };
+  }
+
+  await audit(
+    user,
+    'settings.save',
+    'Setting',
+    'signature',
+    removing
+      ? { removed: true }
+      : uploaded && { format: uploaded.format, width: uploaded.width, height: uploaded.height },
+  );
+  revalidatePath('/innstillinger');
+
+  if (removing) return { success: 'Signaturbildet er fjernet.' };
+  if (!uploaded) return { success: 'Signaturinnstillingene er lagret.' };
+
+  // Anything the operator should double-check in the preview before sending a
+  // contract, rather than discover on a signed copy.
+  const notes = [
+    `${uploaded.format.toUpperCase()} · ${uploaded.width}×${uploaded.height} px · ${Math.round(uploaded.bytes.length / 1024)} kB`,
+  ];
+  if (uploaded.rotated) {
+    notes.push(
+      'Bildet hadde en rotasjonsmarkering (EXIF) som er fjernet, fordi PDF-lesere tolker den ulikt. Kontroller forhåndsvisningen — ligger signaturen på siden, roter bildet og lagre det på nytt før du laster det opp.',
+    );
+  }
+  if (uploaded.large) {
+    notes.push('Bildet er ganske stort og legges inn i hver kontrakt. En beskåret signatur gir lettere PDF-er.');
+  }
+
+  return { success: 'Signaturen er lastet opp.', detail: notes.join('\n') };
 }
 
 // ------------------------------------------------------------ integration tests

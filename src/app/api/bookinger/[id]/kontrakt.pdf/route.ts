@@ -3,6 +3,7 @@ import { handle, requireApiUser, HttpError } from '@/lib/http';
 import { getSettings } from '@/lib/settings';
 import { buildContractContext, renderTemplate, DEFAULT_CONTRACT_TEMPLATE } from '@/lib/contract';
 import { renderContractPdf } from '@/lib/pdf';
+import { loadPdfSignature } from '@/lib/signature';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     const booking = await prisma.booking.findUnique({ where: { id } });
     if (!booking) throw new HttpError(404, 'Fant ikke bookingen.');
 
-    const [property, contract] = await Promise.all([getSettings('property'), getSettings('contract')]);
+    const [property, contract, signature] = await Promise.all([
+      getSettings('property'),
+      getSettings('contract'),
+      loadPdfSignature(),
+    ]);
     const ctx = buildContractContext(booking, property, {
       title: contract.title,
       footer: contract.footer,
@@ -27,6 +32,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       title: contract.title,
       reference: booking.reference,
       footer: property.name,
+      signature,
     });
 
     return new Response(new Uint8Array(pdf), {

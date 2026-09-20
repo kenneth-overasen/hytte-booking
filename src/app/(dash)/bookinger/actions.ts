@@ -14,6 +14,7 @@ import { pushBooking } from '@/lib/caldav';
 import { refreshBookingPower } from '@/lib/tibber';
 import { buildContractContext, renderTemplate } from '@/lib/contract';
 import { renderContractPdf } from '@/lib/pdf';
+import { loadPdfSignature } from '@/lib/signature';
 import { getSettings } from '@/lib/settings';
 import { activeProvider, markSigned } from '@/lib/esign';
 
@@ -184,7 +185,11 @@ export async function sendContractAction(_prev: ActionState, fd: FormData): Prom
   const booking = await prisma.booking.findUnique({ where: { id } });
   if (!booking) return { error: 'Fant ikke bookingen.' };
 
-  const [property, contract] = await Promise.all([getSettings('property'), getSettings('contract')]);
+  const [property, contract, signature] = await Promise.all([
+    getSettings('property'),
+    getSettings('contract'),
+    loadPdfSignature(),
+  ]);
   const ctx = buildContractContext(booking, property, {
     title: contract.title,
     footer: contract.footer,
@@ -195,6 +200,7 @@ export async function sendContractAction(_prev: ActionState, fd: FormData): Prom
     title: contract.title,
     reference: booking.reference,
     footer: property.name,
+    signature,
   });
   const filename = `kontrakt-${booking.reference}.pdf`;
 

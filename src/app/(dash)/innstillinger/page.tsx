@@ -13,6 +13,7 @@ import { isOperatorPickerEnabled } from '@/lib/operator-picker';
 import { fmtDateTime } from '@/lib/datetime';
 import { SettingsForm, ActionButton } from './settings-form';
 import { PowerPriceFields } from './power-price-fields';
+import { SignatureForm } from './signature-form';
 import {
   createUserAction,
   discoverCalendarsAction,
@@ -248,6 +249,8 @@ async function ContractTab() {
         </SettingsForm>
       </Card>
 
+      <SignatureCard />
+
       <Card title="Tilgjengelige variabler">
         <div className="grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2 lg:grid-cols-3">
           {CONTRACT_VARIABLES.map((v) => (
@@ -259,6 +262,28 @@ async function ContractTab() {
         </div>
       </Card>
     </div>
+  );
+}
+
+/**
+ * The scanned signature is stamped above the "Utleier" line in the generated
+ * PDF. It sits in its own form because the file input only carries a value when
+ * a new image is picked — an unchanged save keeps whatever is already stored.
+ */
+async function SignatureCard() {
+  const s = await getSettingsMasked('signature');
+  return (
+    <Card title="Signatur" subtitle="Bildet settes inn over «Utleier»-linjen i den genererte kontrakten.">
+      <SignatureForm
+        image={s.image}
+        format={s.format}
+        filename={s.filename}
+        width={s.width}
+        height={s.height}
+        heightPt={s.heightPt}
+        enabled={s.enabled}
+      />
+    </Card>
   );
 }
 

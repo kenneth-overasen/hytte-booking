@@ -40,7 +40,14 @@ function segments(text: string): { text: string; bold: boolean }[] {
     );
 }
 
-export type PdfMeta = { title: string; reference: string; footer?: string };
+/**
+ * A stamped landlord signature. `image` is the JPEG or PNG lib/signature.ts
+ * validated — pdfkit sniffs the format itself — and `heightPt` is the box it is
+ * fitted into, with the width following the aspect ratio.
+ */
+export type PdfSignature = { image: Buffer; heightPt: number };
+
+export type PdfMeta = { title: string; reference: string; footer?: string; signature?: PdfSignature };
 
 export async function renderContractPdf(markdown: string, meta: PdfMeta): Promise<Buffer> {
   const doc = new PDFDocument({
@@ -107,7 +114,7 @@ export async function renderContractPdf(markdown: string, meta: PdfMeta): Promis
         doc.moveDown(0.5);
         break;
       case 'signature':
-        signatureBlock(doc);
+        signatureBlock(doc, meta.signature);
         break;
     }
   }
@@ -137,13 +144,26 @@ export async function renderContractPdf(markdown: string, meta: PdfMeta): Promis
   return done;
 }
 
-function signatureBlock(doc: PDFKit.PDFDocument) {
-  if (doc.y > doc.page.height - 190) doc.addPage();
+/** Gap between the bottom of a stamped signature and the line it sits on. */
+const SIGNATURE_BASELINE_GAP = 3;
+
+function signatureBlock(doc: PDFKit.PDFDocument, signature?: PdfSignature) {
+  // The stamp sits above the line, so it has to be part of the height the
+  // block reserves — otherwise it lands on the previous page's footer.
+  const stampHeight = signature ? signature.heightPt + SIGNATURE_BASELINE_GAP : 0;
+  if (doc.y > doc.page.height - 190 - stampHeight) doc.addPage();
   doc.moveDown(2.5);
   const left = doc.page.margins.left;
   const usable = doc.page.width - left - doc.page.margins.right;
   const colWidth = (usable - 40) / 2;
-  const y = doc.y;
+  const y = doc.y + stampHeight;
+
+  if (signature) {
+    // Fitted into the column, bottom-aligned so it rests on the line whatever
+    // its aspect ratio. Horizontal alignment is left by default, as on a
+    // hand-signed contract.
+    doc.image(signature.image, left, doc.y, { fit: [colWidth, signature.heightPt], valign: 'bottom' });
+  }
 
   for (const [i, label] of ['Utleier', 'Leietaker'].entries()) {
     const x = left + i * (colWidth + 40);

@@ -169,6 +169,27 @@ export const contractSchema = z.object({
   includePowerClause: z.boolean().default(true),
 });
 
+/**
+ * The landlord's scanned signature, stamped into the contract PDF above the
+ * "Utleier" line. The image lives here as base64 rather than on disk so it
+ * rides along with the ordinary settings backup and needs no writable volume.
+ * pdfkit embeds JPEG and PNG directly, so the upload is stored as it arrived
+ * (see lib/signature.ts, which validates it and caps its size).
+ */
+export const signatureSchema = z.object({
+  enabled: z.boolean().default(true),
+  /** Base64 JPEG or PNG without the data: prefix. Empty means nothing is stamped. */
+  image: z.string().default(''),
+  /** Which of the two the bytes are, for the data: URL the settings preview uses. */
+  format: z.enum(['png', 'jpeg']).default('png'),
+  /** Height of the stamped image in PDF points; the width follows the aspect ratio. */
+  heightPt: z.coerce.number().int().min(16).max(120).default(44),
+  /** Original file name and pixel size, shown in the UI so the operator knows what is stored. */
+  filename: z.string().default(''),
+  width: z.coerce.number().int().min(0).default(0),
+  height: z.coerce.number().int().min(0).default(0),
+});
+
 export const securitySchema = z.object({
   sessionHours: z.coerce.number().int().min(1).max(720).default(12),
   maxFailedLogins: z.coerce.number().int().min(3).max(50).default(8),
@@ -181,6 +202,7 @@ export const SETTINGS = {
   bookingDefaults: { schema: bookingDefaultsSchema, secrets: [], adminOnly: false },
   season: { schema: seasonSchema, secrets: [], adminOnly: false },
   contract: { schema: contractSchema, secrets: [], adminOnly: false },
+  signature: { schema: signatureSchema, secrets: [], adminOnly: false },
   notifications: { schema: notificationsSchema, secrets: [], adminOnly: false },
   tibber: { schema: tibberSchema, secrets: ['token', 'password'], adminOnly: true },
   caldav: { schema: caldavSchema, secrets: ['appPassword'], adminOnly: true },
