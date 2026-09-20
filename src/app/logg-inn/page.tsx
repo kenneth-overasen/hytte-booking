@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, listLoginOperators } from '@/lib/auth';
 import { ensureBootstrap } from '@/lib/bootstrap';
 import { getSettings } from '@/lib/settings';
 import { Alert } from '@/components/ui';
@@ -25,6 +25,9 @@ export default async function LoginPage({
   }
 
   const property = await getSettings('property').catch(() => ({ name: 'Hytta' }));
+  // Tom liste med mindre SHOW_OPERATOR_PICKER er på. Feiler oppslaget, faller
+  // skjemaet tilbake til e-postfeltet i stedet for å blokkere pålogging.
+  const operators = bootstrapError ? [] : await listLoginOperators().catch(() => []);
 
   return (
     <main className="flex min-h-dvh items-center justify-center px-4 py-12">
@@ -44,7 +47,7 @@ export default async function LoginPage({
         )}
 
         <div className="rounded-xl border border-border bg-surface p-5">
-          {bootstrapError ? <Alert kind="error" title="Oppsettet er ikke fullført">{bootstrapError}</Alert> : <LoginForm />}
+          {bootstrapError ? <Alert kind="error" title="Oppsettet er ikke fullført">{bootstrapError}</Alert> : <LoginForm operators={operators} />}
         </div>
       </div>
     </main>

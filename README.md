@@ -69,6 +69,26 @@ at den ikke blir glemt. Skru den av igjen før systemet gjøres tilgjengelig
 utenfra — merk at passord som allerede er satt fortsetter å virke, så de må
 byttes samtidig.
 
+### Operatørvelger på påloggingssiden
+
+Operatører kan trykke på seg selv blant flisene øverst i skjemaet i stedet for
+å skrive e-postadressen — da gjenstår bare passordet:
+
+```bash
+SHOW_OPERATOR_PICKER=true
+```
+
+Flisene viser bare aktive operatører. Administratorer er aldri blant dem, så
+administratorpålogging krever fortsatt at man kjenner e-postadressen — e-postfeltet
+står der som før, og et nytt trykk på en valgt flis henter det tilbake. Valget gir
+ingen tilgang i seg selv: passordet kontrolleres, telles og utestenges nøyaktig
+som før.
+
+Det som svekkes er at navn og e-postadresser til operatørene blir synlige for
+alle som når påloggingssiden. Det er greit på et lukket nett — skru det av igjen
+før systemet gjøres tilgjengelig utenfra. Er innstillingen på, vises en advarsel
+under Innstillinger → Sikkerhet.
+
 ### Bak en Cloudflare-tunnel
 
 Sett `ALLOWED_ORIGINS` til det eksterne navnet, ellers avvises alle skjemaposter
@@ -330,6 +350,8 @@ Innstillinger → Brukere og må velge eget passord ved første pålogging.
 - Passord hashes med scrypt. Ingen native moduler, ingen ekstern avhengighet.
   Kravene til styrke kan lempes med `ALLOW_WEAK_PASSWORDS` for lukkede nett.
 - Utestengning etter gjentatte mislykkede forsøk, både per konto og per IP.
+- Påloggingssiden røper ikke hvilke kontoer som finnes, med mindre
+  `SHOW_OPERATOR_PICKER` er slått på for et lukket nett.
 - Alle skjemaposter kontrolleres mot `ALLOWED_ORIGINS` i tillegg til SameSite.
 - Content-Security-Policy uten eksterne kilder, `frame-ancestors 'none'`,
   HSTS når forespørselen kommer over TLS.

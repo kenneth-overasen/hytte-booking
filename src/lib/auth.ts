@@ -6,6 +6,7 @@ import { prisma } from './db';
 import { hashPassword, randomToken, sha256, verifyPassword } from './crypto';
 import { getSettings } from './settings';
 import { passwordProblem } from './password';
+import { isOperatorPickerEnabled, type OperatorOption } from './operator-picker';
 
 export const SESSION_COOKIE = '__Host-hytte_session';
 export const INSECURE_SESSION_COOKIE = 'hytte_session';
@@ -127,6 +128,23 @@ export async function requireAdmin(): Promise<SessionUser> {
   const user = await requireUser();
   if (user.role !== 'ADMIN') redirect('/?feil=admin-kreves');
   return user;
+}
+
+/**
+ * Operatørene som skal vises i velgeren på påloggingssiden. Tom liste når
+ * SHOW_OPERATOR_PICKER er av, slik at skjemaet faller tilbake til e-postfeltet.
+ *
+ * Bare aktive operatører. Administratorer holdes utenfor med vilje — se
+ * ./operator-picker.ts. Kallet henter aldri mer enn navn og e-post, så en
+ * uinnlogget side ikke kan lekke noe annet om kontoene.
+ */
+export async function listLoginOperators(): Promise<OperatorOption[]> {
+  if (!isOperatorPickerEnabled()) return [];
+  return prisma.user.findMany({
+    where: { role: 'OPERATOR', active: true },
+    select: { email: true, name: true },
+    orderBy: { name: 'asc' },
+  });
 }
 
 export type LoginResult =
