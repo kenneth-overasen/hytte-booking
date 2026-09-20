@@ -3,10 +3,11 @@ import Link from 'next/link';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
-import { Alert, Badge, Card, Empty, Input, LinkButton, Select } from '@/components/ui';
+import { Alert, Badge, Card, Empty, LinkButton } from '@/components/ui';
 import { STATUS_CLASSES, STATUS_LABELS } from '@/lib/bookings';
 import { fmtDate, nightsBetween, osloDateKey } from '@/lib/datetime';
 import { formatNok } from '@/lib/money';
+import { BookingFilters } from './booking-filters';
 
 export const metadata: Metadata = { title: 'Bookinger' };
 export const dynamic = 'force-dynamic';
@@ -60,33 +61,13 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
       {slettet === '1' && <Alert kind="success">Bookingen er slettet.</Alert>}
 
       <Card>
-        <form className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem_10rem_auto]">
-          <Input name="q" defaultValue={q} placeholder="Søk på navn, e-post, telefon eller referanse" />
-          <Select name="status" defaultValue={status}>
-            <option value="">Alle statuser</option>
-            {Object.entries(STATUS_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-          <Select name="periode" defaultValue={periode}>
-            <option value="kommende">Kommende</option>
-            <option value="tidligere">Tidligere</option>
-            <option value="alle">Alle</option>
-            {yearOptions.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </Select>
-          <button
-            type="submit"
-            className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
-          >
-            Filtrer
-          </button>
-        </form>
+        <BookingFilters
+          q={q}
+          status={status}
+          periode={periode}
+          statusOptions={Object.entries(STATUS_LABELS)}
+          yearOptions={yearOptions}
+        />
       </Card>
 
       {bookings.length === 0 ? (
