@@ -66,6 +66,7 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
       TRUST_PROXY: ${TRUST_PROXY:-false}
       ALLOW_WEAK_PASSWORDS: ${ALLOW_WEAK_PASSWORDS:-false}
+      SHOW_OPERATOR_PICKER: ${SHOW_OPERATOR_PICKER:-false}
       TZ: Europe/Oslo
       NODE_ENV: production
     ports:

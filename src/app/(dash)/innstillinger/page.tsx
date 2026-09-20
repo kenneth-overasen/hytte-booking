@@ -9,6 +9,7 @@ import { Alert, Badge, Card, Checkbox, Field, Input, LinkButton, Select, Textare
 import { ConfirmForm } from '@/components/action-form';
 import { formatKroner } from '@/lib/money';
 import { describePolicy, passwordPolicy } from '@/lib/password';
+import { isOperatorPickerEnabled } from '@/lib/operator-picker';
 import { fmtDateTime } from '@/lib/datetime';
 import { SettingsForm, ActionButton } from './settings-form';
 import { PowerPriceFields } from './power-price-fields';
@@ -620,9 +621,19 @@ async function SecurityTab() {
   const audits = await prisma.auditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 20 });
 
   const policy = passwordPolicy();
+  const operatorPicker = isOperatorPickerEnabled();
 
   return (
     <div className="space-y-5">
+      {operatorPicker && (
+        <Alert kind="warning" title="Operatørene vises på påloggingssiden">
+          <code className="text-xs">SHOW_OPERATOR_PICKER</code> er på, så navnene og e-postadressene til aktive
+          operatører er synlige for alle som når påloggingssiden. Greit på et lukket nett — fjern variabelen i{' '}
+          <code className="text-xs">.env</code> og start appen på nytt før systemet gjøres tilgjengelig utenfra.
+          Administratorer står aldri i listen, og passordet kreves som før.
+        </Alert>
+      )}
+
       {policy.relaxed && (
         <Alert kind="warning" title="Kravene til sterkt passord er slått av">
           <code className="text-xs">ALLOW_WEAK_PASSWORDS</code> er på, så passord trenger bare {policy.minLength} tegn

@@ -15,6 +15,8 @@ const schema = z.object({
   TRUST_PROXY: z.string().optional(),
   // Relaxes the password rules for a closed, trusted network. See src/lib/password.ts.
   ALLOW_WEAK_PASSWORDS: z.string().optional(),
+  // Lists operator names on the login screen. See src/lib/operator-picker.ts.
+  SHOW_OPERATOR_PICKER: z.string().optional(),
 });
 
 let cached: z.infer<typeof schema> | null = null;
