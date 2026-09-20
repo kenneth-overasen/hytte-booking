@@ -56,6 +56,10 @@ export async function renderContractPdf(markdown: string, meta: PdfMeta): Promis
     info: { Title: `${meta.title} – ${meta.reference}`, Producer: 'hytte-booking' },
     // pdfkit's bundled Helvetica uses WinAnsi, which covers æ/ø/å.
     autoFirstPage: true,
+    // Keep every page reachable until the end. Without this pdfkit flushes each
+    // page as soon as the next one starts, so the footer pass below could only
+    // ever reach the final page — and could only number it "1 av 1".
+    bufferPages: true,
   });
 
   const chunks: Buffer[] = [];
@@ -123,21 +127,31 @@ export async function renderContractPdf(markdown: string, meta: PdfMeta): Promis
   const range = doc.bufferedPageRange();
   for (let i = range.start; i < range.start + range.count; i++) {
     doc.switchToPage(i);
+    const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
     const y = doc.page.height - 48;
+
+    // The footer deliberately sits inside the bottom margin. pdfkit starts a
+    // new page for any text that begins past the margin, so writing it with the
+    // margin in place appended a blank page per line instead of printing.
+    const bottom = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
+
     doc
       .font('Helvetica')
       .fontSize(8)
       .fillColor('#777777')
       .text(`${meta.reference}${meta.footer ? ` · ${meta.footer}` : ''}`, doc.page.margins.left, y, {
-        width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
+        width,
         align: 'left',
         lineBreak: false,
       })
       .text(`Side ${i - range.start + 1} av ${range.count}`, doc.page.margins.left, y, {
-        width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
+        width,
         align: 'right',
         lineBreak: false,
       });
+
+    doc.page.margins.bottom = bottom;
   }
 
   doc.end();
