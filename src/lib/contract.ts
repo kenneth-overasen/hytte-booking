@@ -12,16 +12,16 @@ Avtalenummer: {{referanse}}
 ## 1. Partene
 
 **Utleier:** {{utleierNavn}}
-{{utleierAdresse}}
+Adresse: {{utleierAdresse}}
 Telefon: {{utleierTelefon}} · E-post: {{utleierEpost}}
 
 **Leietaker:** {{gjestNavn}}
-{{gjestAdresse}}
+{{#if gjestAdresse}}Adresse: {{gjestAdresse}}{{/if}}
 Telefon: {{gjestTelefon}} · E-post: {{gjestEpost}}
 
 ## 2. Leieobjektet
 
-Avtalen gjelder leie av fritidsboligen **{{hytteNavn}}**{{#if hytteAdresse}}, {{hytteAdresse}}{{/if}}.
+Avtalen gjelder leie av fritidsboligen **{{hytteAdresse}}**.
 {{#if matrikkel}}Matrikkel: {{matrikkel}}{{/if}}
 
 ## 3. Leieperiode
@@ -35,37 +35,55 @@ Leieobjektet skal være ryddet og forlatt senest ved avtalt utsjekktidspunkt.
 ## 4. Leiesum og betaling
 
 Leiesum for perioden: **{{leiesum}}**{{#if prisgrunnlag}} ({{prisgrunnlag}}){{/if}}
-{{#if rengjøringsgebyr}}Rengjøringsgebyr: **{{rengjøringsgebyr}}**
-{{/if}}Depositum: **{{depositum}}**
+Depositum: **{{depositum}}**
 
-Leiesum og depositum betales til konto {{kontonummer}} innen avtalt forfall. Depositumet tilbakebetales innen 14 dager etter utsjekk, forutsatt at leieobjektet er forlatt i avtalt stand og at det ikke er påført skader eller manglende oppgjør for strøm.
+Leiesum og depositum betales til konto {{kontonummer}}, eller med Vipps til {{utleierTelefon}} ({{utleierNavn}}), innen avtalt forfall. Depositumet tilbakebetales innen 14 dager etter utsjekk, forutsatt at leieobjektet er forlatt i avtalt stand og at det ikke er påført skader.
+
+I leien inngår gass til gassgrill.
 
 ## 5. Strøm
 
-{{#if strømKlausul}}Strømforbruk i leieperioden måles og faktureres etter faktisk forbruk i tillegg til leiesummen, med mindre annet er avtalt skriftlig. Avlesning skjer ved inn- og utsjekk.
+{{#if strømKlausul}}Strømforbruk i leieperioden måles og faktureres etter faktisk forbruk i tillegg til leiesummen, med mindre annet er avtalt skriftlig. Forbruket leses av automatisk etter utleie, og trekkes fra depositumet.
 
-{{#if fastStrømpris}}Strømmen faktureres til fast pris: **{{fastStrømpris}}**.{{else}}Strømmen faktureres etter spotpris i leieperioden.{{/if}}{{/if}}
+{{#if fastStrømpris}}Strøm belastes med {{fastStrømpris}}.{{else}}Strøm belastes etter gjeldende spotpris for prisområdet i leieperioden.{{/if}}{{/if}}
 
-## 6. Leietakers plikter
+## 6. Internett
 
-- Leieobjektet skal behandles med normal aktsomhet og forlates rengjort.
-- Leietaker er ansvarlig for skader påført av seg selv eller sitt reisefølge.
-- Røyking innendørs er ikke tillatt.
-- Husdyr kun etter skriftlig avtale med utleier.
-- Antall overnattende kan ikke overstige det som er avtalt i punkt 3.
-- Ro og orden skal overholdes av hensyn til naboer.
+Det er ikke internett på leieobjektet. Ruteren som står der er privat og benytter privat mobildata, og er ikke til leietakers disposisjon.
 
-## 7. Avbestilling
+## 7. Leietakers plikter
 
-Avbestilling må skje skriftlig til utleier. Ved avbestilling senere enn 30 dager før innsjekk kan utleier kreve hele eller deler av leiesummen dekket, med mindre perioden leies ut på nytt.
+Leietaker plikter å behandle hytta med aktsomhet og erstatte all skade som skyldes leietaker selv eller andre som benytter hytta. Hytta blir kontrollert ved avreise, og eventuelle skader blir belastet leietaker.
 
-## 8. Ansvar
+Røyking innendørs er ikke tillatt. Ro og orden skal overholdes av hensyn til naboer.
 
-Utleier er ikke ansvarlig for leietakers personlige eiendeler, eller for tap som følge av strømbrudd, vannmangel eller andre forhold utenfor utleiers kontroll.
+## 8. Utleiers plikter
 
-## 9. Signatur
+Utleier plikter å sørge for at hytta er i forsvarlig stand ved leieforholdets start.
+
+## 9. Opphør
+
+Ved leieforholdets opphør forplikter leietaker seg til å levere hytta tilbake i rengjort stand, og til at de øvrige forpliktelsene i henhold til kontrakten er utført. {{#if rengjøringsgebyr}}Ved mangelfull rengjøring belastes leietaker {{rengjøringsgebyr}}.{{else}}Ved mangelfull rengjøring belastes leietaker for medgått tid.{{/if}}
+
+## 10. Dyr
+
+Det er tillatt med kjæledyr på hytta, men dette skal forhåndsgodkjennes skriftlig av utleier. Kjæledyr skal ikke være i sofa eller senger. Dersom kjæledyr medbringes, plikter leietaker å erstatte eventuelle skader dyret påfører hytta eller inventaret.
+
+Det kreves grundig sluttrengjøring for å fjerne spor etter dyr. Dersom rengjøringen er mangelfull, vil utleier engasjere profesjonelle vaskere for leietakers regning.
+
+## 11. Annet
+
+Leieprisen omfatter ikke toalettpapir, sengetøy, håndklær, kjøkkenhåndklær, kjøkkenpapir, stearinlys o.l.
+
+## 12. Avbestilling
+
+Bestillingen er bindende for både utleier og leietaker, og kan ikke avbestilles med mindre begge parter samtykker i dette.
+
+## 13. Signatur
 
 Partene har lest og godtatt vilkårene i denne avtalen.
+
+Denne leieavtalen er utstedt i 2 – to – eksemplarer, ett til hver av partene.
 
 Sted og dato: {{signaturDato}}
 
