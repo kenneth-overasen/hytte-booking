@@ -12,16 +12,16 @@ Avtalenummer: {{referanse}}
 ## 1. Partene
 
 **Utleier:** {{utleierNavn}}
-Adresse: {{utleierAdresse}}
-Telefon: {{utleierTelefon}} · E-post: {{utleierEpost}}
+{{#if utleierAdresse}}Adresse: {{utleierAdresse}}
+{{/if}}Telefon: {{utleierTelefon}} · E-post: {{utleierEpost}}
 
 **Leietaker:** {{gjestNavn}}
-{{#if gjestAdresse}}Adresse: {{gjestAdresse}}{{/if}}
-Telefon: {{gjestTelefon}} · E-post: {{gjestEpost}}
+{{#if gjestAdresse}}Adresse: {{gjestAdresse}}
+{{/if}}Telefon: {{gjestTelefon}} · E-post: {{gjestEpost}}
 
 ## 2. Leieobjektet
 
-Avtalen gjelder leie av fritidsboligen **{{hytteAdresse}}**.
+Avtalen gjelder leie av fritidsboligen {{#if hytteAdresse}}**{{hytteAdresse}}**{{else}}**{{hytteNavn}}**{{/if}}.
 {{#if matrikkel}}Matrikkel: {{matrikkel}}{{/if}}
 
 ## 3. Leieperiode
