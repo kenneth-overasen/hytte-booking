@@ -98,7 +98,22 @@ export function LoginForm({ operators }: { operators: OperatorOption[] }) {
       )}
 
       <Field label="Passord" required>
-        <Input ref={passwordRef} name="password" type="password" autoComplete="current-password" required />
+        <Input
+          ref={passwordRef}
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          // Enter i passordfeltet skal logge inn. Et skjema med en submit-knapp
+          // gjør normalt dette selv, men her styres innsendingen eksplisitt slik
+          // at den ikke avhenger av nettleserens implisitte innsending.
+          // preventDefault hindrer at begge kjoerer og sender skjemaet to ganger.
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter' || e.nativeEvent.isComposing) return;
+            e.preventDefault();
+            if (!pending) e.currentTarget.form?.requestSubmit();
+          }}
+        />
       </Field>
 
       <Button type="submit" variant="primary" className="w-full" disabled={pending}>
