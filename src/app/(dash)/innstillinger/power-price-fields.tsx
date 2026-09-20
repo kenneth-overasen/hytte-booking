@@ -57,10 +57,11 @@ export function PowerPriceFields({
       />
 
       {enabled && (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-4">
           <Field
             label="Fastpris (kr per kWh)"
             hint="Ta med nettleie og påslag her — gjesten skal bare forholde seg til én pris."
+            className="sm:max-w-md"
           >
             <Input
               name="fixedPrice"
@@ -72,12 +73,12 @@ export function PowerPriceFields({
               className="tnum"
             />
           </Field>
-          <Field label="Prisen inkluderer mva">
-            <Select name="fixedPriceIncludesVat" defaultValue={String(fixedPriceIncludesVat)}>
-              <option value="true">Ja — prisen er inkludert mva</option>
-              <option value="false">Nei — mva legges til</option>
-            </Select>
-          </Field>
+          <Checkbox
+            name="fixedPriceIncludesVat"
+            defaultChecked={fixedPriceIncludesVat}
+            label="Prisen inkluderer mva"
+            hint="Slå av hvis mva skal legges til prisen."
+          />
         </div>
       )}
       {!enabled && (
