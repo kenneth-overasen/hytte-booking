@@ -9,6 +9,8 @@ export type PresetCandidate = {
   eligible: boolean;
   /** Higher = more specific. Used to break ties between eligible presets. */
   specificity: number;
+  /** How many whole blocks of the rule the stay covers — 2 for a two-week stay on a week rule. */
+  units: number;
   priceOre: number;
   reasons: string[];
 };
@@ -28,14 +30,33 @@ export type Quote = {
   breakdown: string;
 };
 
-function presetPrice(preset: Preset, nights: number): number {
-  return preset.pricingMode === 'PER_NIGHT' ? preset.priceOre * Math.max(1, nights) : preset.priceOre;
+function presetPrice(preset: Preset, nights: number, units: number): number {
+  return preset.pricingMode === 'PER_NIGHT' ? preset.priceOre * Math.max(1, nights) : preset.priceOre * units;
+}
+
+/**
+ * A fixed price for an exact number of nights is really a block price — a week,
+ * a set-length weekend. A stay that is a whole number of those blocks (two
+ * summer weeks back to back) should cost that many blocks rather than falling
+ * through to the plain nightly rate. Returns 1 for every other kind of rule.
+ */
+function blockUnits(preset: Preset, nights: number): number {
+  if (preset.pricingMode !== 'FIXED') return 1;
+  const unit = preset.minNights;
+  if (unit == null || unit < 1 || unit !== preset.maxNights) return 1;
+  if (nights <= unit || nights % unit !== 0) return 1;
+  return nights / unit;
 }
 
 function evaluate(preset: Preset, ctx: { nights: number; season: SeasonName; startWeekday: number }): PresetCandidate {
   const reasons: string[] = [];
   let eligible = true;
   let specificity = 0;
+
+  // Repeated blocks are checked against one block's length, not the whole stay.
+  const units = blockUnits(preset, ctx.nights);
+  const nights = units > 1 ? ctx.nights / units : ctx.nights;
+  if (units > 1) reasons.push(`${ctx.nights} netter = ${units} × ${nights} netter`);
 
   if (preset.season !== 'ANY') {
     if (preset.season !== ctx.season) {
@@ -48,7 +69,7 @@ function evaluate(preset: Preset, ctx: { nights: number; season: SeasonName; sta
   }
 
   if (preset.minNights != null) {
-    if (ctx.nights < preset.minNights) {
+    if (nights < preset.minNights) {
       eligible = false;
       reasons.push(`Krever minst ${preset.minNights} netter (oppholdet er ${ctx.nights})`);
     } else {
@@ -56,7 +77,7 @@ function evaluate(preset: Preset, ctx: { nights: number; season: SeasonName; sta
     }
   }
   if (preset.maxNights != null) {
-    if (ctx.nights > preset.maxNights) {
+    if (nights > preset.maxNights) {
       eligible = false;
       reasons.push(`Krever høyst ${preset.maxNights} netter (oppholdet er ${ctx.nights})`);
     } else {
@@ -81,7 +102,7 @@ function evaluate(preset: Preset, ctx: { nights: number; season: SeasonName; sta
 
   if (eligible && reasons.length === 0) reasons.push('Passer alle opphold');
 
-  return { preset, eligible, specificity, priceOre: presetPrice(preset, ctx.nights), reasons };
+  return { preset, eligible, specificity, units, priceOre: presetPrice(preset, ctx.nights, units), reasons };
 }
 
 export function seasonLabel(s: Season | SeasonName): string {
@@ -139,10 +160,13 @@ export async function quote(
 
   let breakdown: string;
   if (chosen) {
-    breakdown =
-      chosen.preset.pricingMode === 'PER_NIGHT'
-        ? `${chosen.preset.name}: ${nights} netter × døgnpris`
-        : `${chosen.preset.name}: fastpris for oppholdet`;
+    if (chosen.preset.pricingMode === 'PER_NIGHT') {
+      breakdown = `${chosen.preset.name}: ${nights} netter × døgnpris`;
+    } else if (chosen.units > 1) {
+      breakdown = `${chosen.preset.name}: ${chosen.units} × fastpris (${nights / chosen.units} netter hver)`;
+    } else {
+      breakdown = `${chosen.preset.name}: fastpris for oppholdet`;
+    }
     if (forced && !forced.eligible) breakdown += ' (valgt manuelt — passer ikke automatisk)';
   } else {
     breakdown = `Ingen prisregel passet — standard døgnpris × ${nights} netter`;
