@@ -162,11 +162,11 @@ async function BookingTab() {
           >
             <Input name="cleaningFeeOre" inputMode="decimal" defaultValue={formatKroner(s.cleaningFeeOre)} className="tnum" />
           </Field>
-          <Field label="Prefiks for referansenummer" hint="Referansene blir «PREFIKS-ÅR-NNNN».">
-            <Input name="referencePrefix" defaultValue={s.referencePrefix} maxLength={6} />
-          </Field>
           <Field label="Påslag på strøm (%)" hint="Legges til strømkostnaden ved viderefakturering.">
             <Input name="powerMarkupPercent" type="number" min={0} max={100} step="0.1" defaultValue={s.powerMarkupPercent} />
+          </Field>
+          <Field label="Prefiks for referansenummer" hint="Referansene blir «PREFIKS-ÅR-NNNN».">
+            <Input name="referencePrefix" defaultValue={s.referencePrefix} maxLength={6} />
           </Field>
         </div>
         <Checkbox
