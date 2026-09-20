@@ -71,15 +71,16 @@ byttes samtidig.
 
 ### Operatørvelger på påloggingssiden
 
-Operatører kan velge navnet sitt fra en liste i stedet for å skrive
-e-postadressen — da gjenstår bare passordet:
+Operatører kan trykke på seg selv blant flisene øverst i skjemaet i stedet for
+å skrive e-postadressen — da gjenstår bare passordet:
 
 ```bash
 SHOW_OPERATOR_PICKER=true
 ```
 
-Listen inneholder bare aktive operatører. Administratorer står aldri i den, så
-administratorpålogging krever fortsatt at man kjenner e-postadressen. Valget gir
+Flisene viser bare aktive operatører. Administratorer er aldri blant dem, så
+administratorpålogging krever fortsatt at man kjenner e-postadressen — e-postfeltet
+står der som før, og et nytt trykk på en valgt flis henter det tilbake. Valget gir
 ingen tilgang i seg selv: passordet kontrolleres, telles og utestenges nøyaktig
 som før.
 
