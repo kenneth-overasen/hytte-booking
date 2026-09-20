@@ -154,6 +154,19 @@ Kontrakten er en mal med `{{variabler}}` og `{{#if ...}}`-blokker, redigerbar
 under Innstillinger → Kontraktmal. Den genereres til PDF med norske tegn, topp-
 og bunntekst, sidetall og signaturfelt.
 
+En betingelse slår til når variabelen har en verdi, og kan ha en `{{else}}`-gren
+og nestes fritt:
+
+```
+{{#if fastStrømpris}}Fast pris: {{fastStrømpris}}.{{else}}Spotpris.{{/if}}
+```
+
+`{{strømpris}}` er alltid utfylt — enten den faste prisen per kWh eller ordet
+«spotpris». Vil du formulere de to tilfellene ulikt, betinger du på
+`{{fastStrømpris}}`, som er tom når strømmen følger spotprisen.
+`{{rengjøringsgebyr}}` er tom når gebyret står på 0, slik at punktet kan
+utelates. Begge beløpene settes under Innstillinger → Booking.
+
 Under samme fane kan du laste opp et bilde av utleiers signatur (JPG eller PNG,
 maks 2 MB). Bildet lagres i innstillingene — det følger altså med
 sikkerhetskopien og krever ingen skrivbar disk — og stemples over

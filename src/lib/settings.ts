@@ -23,6 +23,8 @@ export const bookingDefaultsSchema = z.object({
   checkOutTime: timeStr.default('12:00'),
   defaultDepositOre: z.coerce.number().int().min(0).default(300000),
   defaultNightlyOre: z.coerce.number().int().min(0).default(120000),
+  /** A flat cleaning fee for the stay. 0 leaves {{rengjøringsgebyr}} empty. */
+  cleaningFeeOre: z.coerce.number().int().min(0).default(0),
   referencePrefix: z.string().default('HY'),
   /** Bill power on top of rent, using the Tibber reading. */
   chargePowerSeparately: z.boolean().default(false),

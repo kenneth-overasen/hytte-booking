@@ -158,11 +158,18 @@ export async function renderContractAction(_prev: ActionState, fd: FormData): Pr
   const booking = await prisma.booking.findUnique({ where: { id } });
   if (!booking) return { error: 'Fant ikke bookingen.' };
 
-  const [property, contract] = await Promise.all([getSettings('property'), getSettings('contract')]);
+  const [property, contract, tibber, bookingDefaults] = await Promise.all([
+    getSettings('property'),
+    getSettings('contract'),
+    getSettings('tibber'),
+    getSettings('bookingDefaults'),
+  ]);
   const ctx = buildContractContext(booking, property, {
     title: contract.title,
     footer: contract.footer,
     includePowerClause: contract.includePowerClause,
+    tibber,
+    bookingDefaults,
   });
   const rendered = renderTemplate(contract.template, ctx);
 
@@ -185,15 +192,19 @@ export async function sendContractAction(_prev: ActionState, fd: FormData): Prom
   const booking = await prisma.booking.findUnique({ where: { id } });
   if (!booking) return { error: 'Fant ikke bookingen.' };
 
-  const [property, contract, signature] = await Promise.all([
+  const [property, contract, tibber, bookingDefaults, signature] = await Promise.all([
     getSettings('property'),
     getSettings('contract'),
+    getSettings('tibber'),
+    getSettings('bookingDefaults'),
     loadPdfSignature(),
   ]);
   const ctx = buildContractContext(booking, property, {
     title: contract.title,
     footer: contract.footer,
     includePowerClause: contract.includePowerClause,
+    tibber,
+    bookingDefaults,
   });
   const markdown = booking.contractHtml || renderTemplate(contract.template, ctx);
   const pdf = await renderContractPdf(markdown, {

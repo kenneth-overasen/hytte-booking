@@ -15,15 +15,19 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     const booking = await prisma.booking.findUnique({ where: { id } });
     if (!booking) throw new HttpError(404, 'Fant ikke bookingen.');
 
-    const [property, contract, signature] = await Promise.all([
+    const [property, contract, tibber, bookingDefaults, signature] = await Promise.all([
       getSettings('property'),
       getSettings('contract'),
+      getSettings('tibber'),
+      getSettings('bookingDefaults'),
       loadPdfSignature(),
     ]);
     const ctx = buildContractContext(booking, property, {
       title: contract.title,
       footer: contract.footer,
       includePowerClause: contract.includePowerClause,
+      tibber,
+      bookingDefaults,
     });
 
     // Prefer the stored rendering so a downloaded PDF matches what was sent.

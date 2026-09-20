@@ -2,7 +2,7 @@ import type { Booking } from '@prisma/client';
 import { fmtDate, fmtDateTime, fmtLongDate, nightsBetween, osloTime } from './datetime';
 import { formatNok } from './money';
 import { seasonLabel } from './pricing';
-import type { propertySchema } from './settings';
+import type { bookingDefaultsSchema, propertySchema, tibberSchema } from './settings';
 import type { z } from 'zod';
 
 export const DEFAULT_CONTRACT_TEMPLATE = `# {{kontraktstittel}}
@@ -35,13 +35,16 @@ Leieobjektet skal være ryddet og forlatt senest ved avtalt utsjekktidspunkt.
 ## 4. Leiesum og betaling
 
 Leiesum for perioden: **{{leiesum}}**{{#if prisgrunnlag}} ({{prisgrunnlag}}){{/if}}
-Depositum: **{{depositum}}**
+{{#if rengjøringsgebyr}}Rengjøringsgebyr: **{{rengjøringsgebyr}}**
+{{/if}}Depositum: **{{depositum}}**
 
 Leiesum og depositum betales til konto {{kontonummer}} innen avtalt forfall. Depositumet tilbakebetales innen 14 dager etter utsjekk, forutsatt at leieobjektet er forlatt i avtalt stand og at det ikke er påført skader eller manglende oppgjør for strøm.
 
 ## 5. Strøm
 
-{{#if strømKlausul}}Strømforbruk i leieperioden måles og faktureres etter faktisk forbruk i tillegg til leiesummen, med mindre annet er avtalt skriftlig. Avlesning skjer ved inn- og utsjekk.{{/if}}
+{{#if strømKlausul}}Strømforbruk i leieperioden måles og faktureres etter faktisk forbruk i tillegg til leiesummen, med mindre annet er avtalt skriftlig. Avlesning skjer ved inn- og utsjekk.
+
+{{#if fastStrømpris}}Strømmen faktureres til fast pris: **{{fastStrømpris}}**.{{else}}Strømmen faktureres etter spotpris i leieperioden.{{/if}}{{/if}}
 
 ## 6. Leietakers plikter
 
@@ -73,12 +76,43 @@ Sted og dato: {{signaturDato}}
 
 export type ContractContext = Record<string, string | undefined>;
 
+/** "2,10 kr/kWh" — a rate per unit, so not the currency format formatNok gives. */
+function formatPricePerKwh(kroner: number): string {
+  const amount = new Intl.NumberFormat('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(kroner);
+  return `${amount} kr/kWh`;
+}
+
+/**
+ * What the guest is billed per kWh, or null when there is no fixed rate to
+ * quote and consumption follows the spot price. The markup is part of the rate
+ * only when power is billed separately, which is the same condition under which
+ * refreshBookingPower() applies it.
+ */
+function fixedPowerRate(
+  tibber: z.infer<typeof tibberSchema>,
+  defaults: z.infer<typeof bookingDefaultsSchema>,
+): string | null {
+  if (!tibber.useFixedPrice || tibber.fixedPrice <= 0) return null;
+  const rate = defaults.chargePowerSeparately
+    ? tibber.fixedPrice * (1 + defaults.powerMarkupPercent / 100)
+    : tibber.fixedPrice;
+  return `${formatPricePerKwh(rate)} ${tibber.fixedPriceIncludesVat ? 'inkl. mva' : 'eks. mva'}`;
+}
+
 export function buildContractContext(
   booking: Booking,
   property: z.infer<typeof propertySchema>,
-  opts: { title: string; footer: string; includePowerClause: boolean; breakdown?: string },
+  opts: {
+    title: string;
+    footer: string;
+    includePowerClause: boolean;
+    breakdown?: string;
+    tibber: z.infer<typeof tibberSchema>;
+    bookingDefaults: z.infer<typeof bookingDefaultsSchema>;
+  },
 ): ContractContext {
   const nights = nightsBetween(booking.checkIn, booking.checkOut);
+  const fastStrompris = fixedPowerRate(opts.tibber, opts.bookingDefaults);
   return {
     kontraktstittel: opts.title,
     referanse: booking.reference,
@@ -111,6 +145,12 @@ export function buildContractContext(
     sesong: seasonLabel(booking.season),
 
     strømKlausul: opts.includePowerClause ? 'ja' : '',
+    // Always reads as something: the rate when one is fixed, otherwise the word
+    // for what the guest is charged instead. Branch on fastStrømpris, which is
+    // empty in the spot-price case.
+    strømpris: fastStrompris ?? 'spotpris',
+    fastStrømpris: fastStrompris ?? '',
+    rengjøringsgebyr: opts.bookingDefaults.cleaningFeeOre > 0 ? formatNok(opts.bookingDefaults.cleaningFeeOre) : '',
     bunntekst: opts.footer,
     signaturDato: fmtLongDate(new Date()),
     signaturfelt: '__SIGNATURE_BLOCK__',
@@ -118,9 +158,24 @@ export function buildContractContext(
   };
 }
 
+/** Splits a conditional body on its own {{else}}, if it has one. */
+function splitOnElse(body: string): [string, string] {
+  const match = /\{\{\s*else\s*\}\}/.exec(body);
+  return match ? [body.slice(0, match.index), body.slice(match.index + match[0].length)] : [body, ''];
+}
+
 /**
- * Minimal, dependency-free template renderer: {{var}} and {{#if var}}…{{/if}}.
- * Unknown variables render empty rather than leaking the placeholder into a PDF.
+ * Matches one innermost conditional: the body may not itself open an {{#if}},
+ * so a nested block is always resolved before the block containing it, and an
+ * {{else}} inside the body can only be this block's own.
+ */
+const INNERMOST_IF = /\{\{#if\s+([\wæøåÆØÅ]+)\}\}((?:(?!\{\{#if\s)[\s\S])*?)\{\{\/if\}\}/g;
+
+/**
+ * Minimal, dependency-free template renderer: {{var}}, {{#if var}}…{{/if}} and
+ * {{#if var}}…{{else}}…{{/if}}. A variable counts as true when it is a
+ * non-blank string, so an empty value and an absent one behave alike. Unknown
+ * variables render empty rather than leaking the placeholder into a PDF.
  */
 export function renderTemplate(template: string, ctx: ContractContext): string {
   const truthy = (key: string) => {
@@ -128,13 +183,13 @@ export function renderTemplate(template: string, ctx: ContractContext): string {
     return typeof v === 'string' && v.trim() !== '';
   };
 
-  // Conditionals first, innermost-last via repeated passes.
+  // Conditionals first, resolving each innermost block and working outwards.
   let out = template;
-  for (let pass = 0; pass < 5; pass++) {
-    const next = out.replace(
-      /\{\{#if\s+([\wæøåÆØÅ]+)\}\}([\s\S]*?)\{\{\/if\}\}/g,
-      (_m, key: string, body: string) => (truthy(key) ? body : ''),
-    );
+  for (let pass = 0; pass < 10; pass++) {
+    const next = out.replace(INNERMOST_IF, (_m, key: string, body: string) => {
+      const [whenTrue, whenFalse] = splitOnElse(body);
+      return truthy(key) ? whenTrue : whenFalse;
+    });
     if (next === out) break;
     out = next;
   }
@@ -171,6 +226,9 @@ export const CONTRACT_VARIABLES: { key: string; label: string }[] = [
   { key: 'prisgrunnlag', label: 'Navn på prisregel' },
   { key: 'sesong', label: 'Sesong' },
   { key: 'strømKlausul', label: 'Strømklausul (av/på)' },
+  { key: 'strømpris', label: 'Strømpris, eller «spotpris»' },
+  { key: 'fastStrømpris', label: 'Fast strømpris (tom ved spotpris)' },
+  { key: 'rengjøringsgebyr', label: 'Rengjøringsgebyr' },
   { key: 'bunntekst', label: 'Bunntekst' },
   { key: 'signaturDato', label: 'Dagens dato' },
   { key: 'signaturfelt', label: 'Signaturfelt' },

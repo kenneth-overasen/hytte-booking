@@ -60,7 +60,7 @@ const BOOLEAN_FIELDS: Record<SettingsKey, string[]> = {
  * stored value by 100 each time.
  */
 const KRONER_FIELDS: Partial<Record<SettingsKey, string[]>> = {
-  bookingDefaults: ['defaultDepositOre', 'defaultNightlyOre'],
+  bookingDefaults: ['defaultDepositOre', 'defaultNightlyOre', 'cleaningFeeOre'],
 };
 
 async function guard(key: SettingsKey) {

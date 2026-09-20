@@ -156,6 +156,12 @@ async function BookingTab() {
           <Field label="Standard døgnpris (kr)" hint="Brukes når ingen prisregel passer.">
             <Input name="defaultNightlyOre" inputMode="decimal" defaultValue={formatKroner(s.defaultNightlyOre)} className="tnum" />
           </Field>
+          <Field
+            label="Rengjøringsgebyr (kr)"
+            hint="Vises i kontrakten som {{rengjøringsgebyr}}. 0 lar variabelen stå tom."
+          >
+            <Input name="cleaningFeeOre" inputMode="decimal" defaultValue={formatKroner(s.cleaningFeeOre)} className="tnum" />
+          </Field>
           <Field label="Prefiks for referansenummer" hint="Referansene blir «PREFIKS-ÅR-NNNN».">
             <Input name="referencePrefix" defaultValue={s.referencePrefix} maxLength={6} />
           </Field>
@@ -232,7 +238,7 @@ async function ContractTab() {
           </Field>
           <Field
             label="Mal"
-            hint="Støtter overskrifter med # og ##, punktlister med -, fet skrift med **tekst**, variabler med {{navn}} og betingelser med {{#if navn}} … {{/if}}."
+            hint="Støtter overskrifter med # og ##, punktlister med -, fet skrift med **tekst**, variabler med {{navn}} og betingelser med {{#if navn}} … {{else}} … {{/if}}. En betingelse slår til når variabelen har en verdi, og kan nestes."
           >
             <Textarea
               name="template"
