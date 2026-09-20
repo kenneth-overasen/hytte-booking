@@ -16,14 +16,23 @@ import { exportBackup, importBackup } from '@/lib/backup';
 
 export type SettingsState = { error?: string; success?: string; detail?: string };
 
-/** Booleans arrive as "on" (checked) or absent; everything else is a string. */
+/**
+ * Booleans arrive either from a checkbox ("on", or absent when unchecked) or
+ * from a select carrying an explicit "true"/"false". Accepting both keeps a
+ * select from having to spell its options "on"/"" to satisfy the checkbox
+ * convention, which worked only by coincidence. Mirrors the bool() helper in
+ * the booking actions.
+ */
 function formToObject(fd: FormData, booleanKeys: string[]): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [key, value] of fd.entries()) {
     if (key === '_key' || value instanceof File) continue;
     out[key] = value;
   }
-  for (const key of booleanKeys) out[key] = fd.get(key) === 'on';
+  for (const key of booleanKeys) {
+    const raw = fd.get(key);
+    out[key] = raw === 'on' || raw === 'true';
+  }
   return out;
 }
 

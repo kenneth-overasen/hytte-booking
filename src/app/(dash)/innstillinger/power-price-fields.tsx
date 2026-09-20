@@ -73,9 +73,9 @@ export function PowerPriceFields({
             />
           </Field>
           <Field label="Prisen inkluderer mva">
-            <Select name="fixedPriceIncludesVat" defaultValue={fixedPriceIncludesVat ? 'on' : ''}>
-              <option value="on">Ja — prisen er inkludert mva</option>
-              <option value="">Nei — mva legges til</option>
+            <Select name="fixedPriceIncludesVat" defaultValue={String(fixedPriceIncludesVat)}>
+              <option value="true">Ja — prisen er inkludert mva</option>
+              <option value="false">Nei — mva legges til</option>
             </Select>
           </Field>
         </div>
@@ -83,7 +83,7 @@ export function PowerPriceFields({
       {!enabled && (
         <>
           <input type="hidden" name="fixedPrice" value={fixedPrice} />
-          <input type="hidden" name="fixedPriceIncludesVat" value={fixedPriceIncludesVat ? 'on' : ''} />
+          <input type="hidden" name="fixedPriceIncludesVat" value={String(fixedPriceIncludesVat)} />
         </>
       )}
 
