@@ -169,6 +169,12 @@ export const contractSchema = z.object({
   footer: z.string().default(''),
   /** Show the power-consumption clause in the rendered contract. */
   includePowerClause: z.boolean().default(true),
+  /**
+   * Body text size in points. Headings, signature labels and the page footer
+   * are derived from it, so this one number resizes the whole contract without
+   * disturbing its proportions. Not an integer: the default is 10.5.
+   */
+  fontSizePt: z.coerce.number().min(7).max(16).default(10.5),
 });
 
 /**

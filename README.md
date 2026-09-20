@@ -167,6 +167,10 @@ og nestes fritt:
 `{{rengjøringsgebyr}}` er tom når gebyret står på 0, slik at punktet kan
 utelates. Begge beløpene settes under Innstillinger → Booking.
 
+Skriftstørrelsen settes samme sted som malen, og oppgis i punkter for
+brødteksten. Overskrifter, signaturfeltet og bunnteksten utledes av den, så ett
+tall skalerer hele kontrakten uten å endre proporsjonene. Standard er 10,5.
+
 Under samme fane kan du laste opp et bilde av utleiers signatur (JPG eller PNG,
 maks 2 MB). Bildet lagres i innstillingene — det følger altså med
 sikkerhetskopien og krever ingen skrivbar disk — og stemples over

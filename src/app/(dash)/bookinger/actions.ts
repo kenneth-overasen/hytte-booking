@@ -212,6 +212,7 @@ export async function sendContractAction(_prev: ActionState, fd: FormData): Prom
     reference: booking.reference,
     footer: property.name,
     signature,
+    fontSizePt: contract.fontSizePt,
   });
   const filename = `kontrakt-${booking.reference}.pdf`;
 

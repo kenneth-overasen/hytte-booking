@@ -47,7 +47,22 @@ function segments(text: string): { text: string; bold: boolean }[] {
  */
 export type PdfSignature = { image: Buffer; heightPt: number };
 
-export type PdfMeta = { title: string; reference: string; footer?: string; signature?: PdfSignature };
+export type PdfMeta = {
+  title: string;
+  reference: string;
+  footer?: string;
+  signature?: PdfSignature;
+  /** Body text size in points; everything else scales from it. Defaults to BODY_FONT_PT. */
+  fontSizePt?: number;
+};
+
+/**
+ * The size every other measurement in this file is written against. Passing a
+ * different fontSizePt multiplies them all by the same factor, so the contract
+ * keeps its proportions — headings stay proportionally larger, and the gaps and
+ * page-break thresholds grow with the text rather than being left behind.
+ */
+const BODY_FONT_PT = 10.5;
 
 export async function renderContractPdf(markdown: string, meta: PdfMeta): Promise<Buffer> {
   const doc = new PDFDocument({
@@ -62,6 +77,9 @@ export async function renderContractPdf(markdown: string, meta: PdfMeta): Promis
     bufferPages: true,
   });
 
+  const body = meta.fontSizePt ?? BODY_FONT_PT;
+  const k = body / BODY_FONT_PT;
+
   const chunks: Buffer[] = [];
   doc.on('data', (c: Buffer) => chunks.push(c));
   const done = new Promise<Buffer>((resolve, reject) => {
@@ -72,29 +90,31 @@ export async function renderContractPdf(markdown: string, meta: PdfMeta): Promis
   const write = (text: string, opts: { bold?: boolean; size?: number; gap?: number; indent?: number } = {}) => {
     doc
       .font(opts.bold ? 'Helvetica-Bold' : 'Helvetica')
-      .fontSize(opts.size ?? 10.5)
+      .fontSize(opts.size ?? body)
       .fillColor('#111111')
-      .text(text, { align: 'left', indent: opts.indent ?? 0, lineGap: opts.gap ?? 1.5 });
+      .text(text, { align: 'left', indent: opts.indent ?? 0, lineGap: opts.gap ?? 1.5 * k });
   };
 
   const writeRich = (text: string, opts: { indent?: number } = {}) => {
     const parts = segments(text);
     if (parts.length === 1 && !parts[0]!.bold) return write(text, opts);
-    doc.fontSize(10.5).fillColor('#111111');
+    doc.fontSize(body).fillColor('#111111');
     if (opts.indent) doc.text('', { continued: true, indent: opts.indent });
     parts.forEach((p, i) => {
-      doc.font(p.bold ? 'Helvetica-Bold' : 'Helvetica').text(p.text, { continued: i < parts.length - 1, lineGap: 1.5 });
+      doc
+        .font(p.bold ? 'Helvetica-Bold' : 'Helvetica')
+        .text(p.text, { continued: i < parts.length - 1, lineGap: 1.5 * k });
     });
   };
 
   for (const line of parse(markdown)) {
     // Keep headings with the text that follows them.
-    if ((line.kind === 'h1' || line.kind === 'h2') && doc.y > doc.page.height - 160) doc.addPage();
+    if ((line.kind === 'h1' || line.kind === 'h2') && doc.y > doc.page.height - 160 * k) doc.addPage();
 
     switch (line.kind) {
       case 'h1':
         doc.moveDown(0.2);
-        write(line.text, { bold: true, size: 18, gap: 3 });
+        write(line.text, { bold: true, size: 18 * k, gap: 3 * k });
         doc
           .moveTo(doc.page.margins.left, doc.y + 4)
           .lineTo(doc.page.width - doc.page.margins.right, doc.y + 4)
@@ -105,7 +125,7 @@ export async function renderContractPdf(markdown: string, meta: PdfMeta): Promis
         break;
       case 'h2':
         doc.moveDown(0.6);
-        write(line.text, { bold: true, size: 12.5, gap: 2 });
+        write(line.text, { bold: true, size: 12.5 * k, gap: 2 * k });
         doc.moveDown(0.25);
         break;
       case 'li':
@@ -118,7 +138,7 @@ export async function renderContractPdf(markdown: string, meta: PdfMeta): Promis
         doc.moveDown(0.5);
         break;
       case 'signature':
-        signatureBlock(doc, meta.signature);
+        signatureBlock(doc, meta.signature, k);
         break;
     }
   }
@@ -138,7 +158,7 @@ export async function renderContractPdf(markdown: string, meta: PdfMeta): Promis
 
     doc
       .font('Helvetica')
-      .fontSize(8)
+      .fontSize(8 * k)
       .fillColor('#777777')
       .text(`${meta.reference}${meta.footer ? ` · ${meta.footer}` : ''}`, doc.page.margins.left, y, {
         width,
@@ -161,11 +181,13 @@ export async function renderContractPdf(markdown: string, meta: PdfMeta): Promis
 /** Gap between the bottom of a stamped signature and the line it sits on. */
 const SIGNATURE_BASELINE_GAP = 3;
 
-function signatureBlock(doc: PDFKit.PDFDocument, signature?: PdfSignature) {
+function signatureBlock(doc: PDFKit.PDFDocument, signature: PdfSignature | undefined, k: number) {
   // The stamp sits above the line, so it has to be part of the height the
-  // block reserves — otherwise it lands on the previous page's footer.
+  // block reserves — otherwise it lands on the previous page's footer. Only the
+  // block's own text scales with k; the stamp is sized in points by the
+  // operator and stays put.
   const stampHeight = signature ? signature.heightPt + SIGNATURE_BASELINE_GAP : 0;
-  if (doc.y > doc.page.height - 190 - stampHeight) doc.addPage();
+  if (doc.y > doc.page.height - 190 * k - stampHeight) doc.addPage();
   doc.moveDown(2.5);
   const left = doc.page.margins.left;
   const usable = doc.page.width - left - doc.page.margins.right;
@@ -182,7 +204,7 @@ function signatureBlock(doc: PDFKit.PDFDocument, signature?: PdfSignature) {
   for (const [i, label] of ['Utleier', 'Leietaker'].entries()) {
     const x = left + i * (colWidth + 40);
     doc.moveTo(x, y).lineTo(x + colWidth, y).strokeColor('#333333').lineWidth(0.8).stroke();
-    doc.font('Helvetica').fontSize(9).fillColor('#555555').text(label, x, y + 6, { width: colWidth });
+    doc.font('Helvetica').fontSize(9 * k).fillColor('#555555').text(label, x, y + 6 * k, { width: colWidth });
   }
-  doc.y = y + 28;
+  doc.y = y + 28 * k;
 }

@@ -37,6 +37,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       reference: booking.reference,
       footer: property.name,
       signature,
+      fontSizePt: contract.fontSizePt,
     });
 
     return new Response(new Uint8Array(pdf), {

@@ -248,9 +248,17 @@ async function ContractTab() {
               spellCheck={false}
             />
           </Field>
-          <Field label="Bunntekst" hint="Vises nederst på hver side i PDF-en.">
-            <Input name="footer" defaultValue={s.footer} />
-          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Bunntekst" hint="Vises nederst på hver side i PDF-en.">
+              <Input name="footer" defaultValue={s.footer} />
+            </Field>
+            <Field
+              label="Skriftstørrelse (punkter)"
+              hint="Gjelder brødteksten. Overskrifter, signaturfelt og bunntekst skaleres i takt. Standard er 10,5."
+            >
+              <Input name="fontSizePt" type="number" min={7} max={16} step={0.5} defaultValue={s.fontSizePt} />
+            </Field>
+          </div>
           <Checkbox name="includePowerClause" defaultChecked={s.includePowerClause} label="Ta med strømklausul" />
         </SettingsForm>
       </Card>
