@@ -41,6 +41,21 @@ export const seasonSchema = z.object({
   seasonThreshold: z.coerce.number().min(0.1).max(1).default(DEFAULT_SEASON_CONFIG.seasonThreshold),
 });
 
+/**
+ * tibber-report dropped the VAT split from its own summary, and the fields we
+ * used to point at went with it. Only paths this app shipped as a default are
+ * rewritten — anything the operator typed is left exactly as typed, even if it
+ * no longer resolves. Reading a stale setting repairs it; saving persists it.
+ */
+const RETIRED_COST_PATHS: Record<string, string> = {
+  'summary.fixed.inclVat': 'summary.fixed.total',
+  'summary.differenceInclVat': 'summary.difference',
+};
+
+function renamedCostPath(path: string): string {
+  return RETIRED_COST_PATHS[path] ?? path;
+}
+
 export const tibberSchema = z.object({
   enabled: z.boolean().default(false),
   /** Set to true to use the built-in simulator instead of a real endpoint. */
@@ -70,18 +85,21 @@ export const tibberSchema = z.object({
   password: z.string().default(''),
   /**
    * Dot-paths into the JSON response. Use [] to sum an array of objects.
-   * The cost path points at an inclVat figure on purpose: on spot price that is
-   * what the power company bills the landlord, so it is the landlord's cost and
-   * is passed on whole — never a VAT line a tenant could deduct.
+   * The spot path points at an inclVat figure on purpose: that is what the
+   * power company bills the landlord, so it is the landlord's cost and is
+   * passed on whole — never a VAT line a tenant could deduct.
    */
   kwhPath: z.string().default('summary.totalConsumption'),
-  costPath: z.string().default('summary.spot.inclVat'),
+  costPath: z.string().default('summary.spot.inclVat').transform(renamedCostPath),
   costUnit: z.enum(['NOK', 'ORE']).default('NOK'),
   /**
    * A fixed price per kWh, passed to the report service so the guest is billed
    * one agreed rate instead of the spot price. The landlord settles the
    * difference with the power company, so the rate is final: fixed_price goes
    * out with fixed_price_includes_vat true and nothing is added on top.
+   *
+   * It also makes the report fixed-only, since a spot column the guest is not
+   * billed for only invites the question of why the two numbers differ.
    */
   useFixedPrice: z.boolean().default(false),
   fixedPrice: z.coerce.number().min(0).max(100).default(0),

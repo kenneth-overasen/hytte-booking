@@ -180,6 +180,10 @@ function buildRequest(cfg: Cfg, from: Date, to: Date, path: string, accept: stri
  * The rate is always sent as VAT-inclusive. A fixed price is the whole amount
  * the guest owes — the landlord settles the difference with the power company —
  * so the service must never add VAT on top of it.
+ *
+ * fixed_only then drops the spot columns from the report and its PDF. What the
+ * landlord pays upstream is their own business; putting it beside the agreed
+ * rate would only invite the guest to ask about the difference.
  */
 function withFixedPrice(body: string, cfg: Cfg): string {
   if (!cfg.useFixedPrice || cfg.fixedPrice <= 0) return body;
@@ -196,6 +200,7 @@ function withFixedPrice(body: string, cfg: Cfg): string {
 
   if (!('fixed_price' in parsed)) parsed.fixed_price = cfg.fixedPrice;
   if (!('fixed_price_includes_vat' in parsed)) parsed.fixed_price_includes_vat = true;
+  if (!('fixed_only' in parsed)) parsed.fixed_only = true;
   return JSON.stringify(parsed, null, 2);
 }
 
@@ -359,17 +364,24 @@ export async function refreshBookingPower(booking: Booking): Promise<PowerReadin
 }
 
 export async function testTibber(cfgOverride?: Partial<Cfg>): Promise<{ ok: boolean; message: string; reading?: PowerReading }> {
+  const cfg = { ...(await getSettings('tibber')), ...cfgOverride } as Cfg;
   const to = new Date();
   const from = new Date(to.getTime() - 7 * 86_400_000);
   try {
     const reading = await fetchReading(from, to, cfgOverride);
+    // A kWh that does not resolve throws; a cost that does not resolve is
+    // simply absent, which reads as success until a booking is invoiced. Say
+    // so here — a path left behind by an upstream rename looks exactly like this.
+    const costMissing = Boolean(cfg.costPath) && reading.costOre == null && reading.source !== 'mock';
     return {
       ok: true,
       message: `Hentet ${reading.kwh} kWh${
         reading.costOre != null ? ` (${(reading.costOre / 100).toFixed(2)} kr)` : ''
       } for siste uke — ${
         reading.basis === 'fixed' ? `fastpris ${reading.fixedPricePerKwh} kr/kWh` : 'spotpris'
-      }${reading.source === 'mock' ? ', simulert' : ''}.`,
+      }${reading.source === 'mock' ? ', simulert' : ''}.${
+        costMissing ? ` Fant ingen kostnad på stien «${cfg.costPath}» — sjekk feltkartleggingen.` : ''
+      }`,
       reading,
     };
   } catch (err) {

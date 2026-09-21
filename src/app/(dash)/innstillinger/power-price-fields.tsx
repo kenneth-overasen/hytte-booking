@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Checkbox, Field, Input, Select } from '@/components/ui';
 
 const SPOT_PATH = 'summary.spot.inclVat';
-const FIXED_PATH = 'summary.fixed.inclVat';
+const FIXED_PATH = 'summary.fixed.total';
 
 /**
  * The fixed-price switch and the cost path belong together: turning the switch
@@ -51,7 +51,7 @@ export function PowerPriceFields({
         defaultChecked={useFixedPrice}
         onChange={(e) => toggle(e.target.checked)}
         label="Bruk fastpris per kWh"
-        hint="Gjesten faktureres én avtalt pris i stedet for spotprisen. Prisen sendes med forespørselen, og tjenesten regner ut beløpet. Utleier gjør opp differansen mot kraftleverandøren."
+        hint="Gjesten faktureres én avtalt pris i stedet for spotprisen. Prisen sendes med forespørselen, og tjenesten regner ut beløpet. Utleier gjør opp differansen mot kraftleverandøren, og spotprisen utelates fra rapporten og PDF-en."
       />
 
       {enabled && (
@@ -101,8 +101,9 @@ export function PowerPriceFields({
 
       {mismatch && (
         <Alert kind="warning">
-          Fastpris er på, men kostnaden leses fortsatt fra spotprisen. Bruk{' '}
-          <code className="text-xs">{FIXED_PATH}</code> for å få beløpet gjesten skal betale.
+          Fastpris er på, men kostnaden leses fortsatt fra spotprisen — som ikke lenger er med i svaret
+          når fastpris er aktiv. Bruk <code className="text-xs">{FIXED_PATH}</code> for å få beløpet
+          gjesten skal betale.
         </Alert>
       )}
     </div>

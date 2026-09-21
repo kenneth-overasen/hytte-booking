@@ -246,15 +246,33 @@ den sendes med forespørselen som `fixed_price`, og tibber-report regner ut
 beløpet på faktisk forbruk.
 
 Når fastpris slås på, byttes **Sti til kostnad** samtidig til
-`summary.fixed.inclVat`, siden det er der beløpet ligger i svaret. Byttet skjer
+`summary.fixed.total`, siden det er der beløpet ligger i svaret. Byttet skjer
 synlig i skjemaet, og en sti du har skrevet selv røres ikke. Står fastpris på
-mens kostnaden fortsatt leses fra spotprisen, sier appen fra.
+mens kostnaden fortsatt leses fra spotprisen, sier appen fra — spotfeltene er
+ikke med i svaret i det hele tatt når fastpris er aktiv.
+
+Forespørselen sender nemlig også `fixed_only`, som gjør rapporten og PDF-en
+rene fastprisdokumenter: ingen spotkolonne, ingen differanse. Hva utleier
+betaler oppover er utleiers sak, og et tall ved siden av den avtalte prisen
+inviterer bare til spørsmål om hvorfor de to er forskjellige.
 
 Legg nettleie og påslag inn i fastprisen — da er **Påslag på strøm (%)** under
 Innstillinger → Booking overflødig og bør stå på 0.
 
-Uten fastpris hentes **spotpris inkludert mva, energi alene**. Nettleie og
-fastledd ligger ikke i det tallet.
+#### Mva
+
+Mva er ikke en post gjesten kan be om å slippe, uansett om det er en privat
+gjest eller et firma som leier. De to prismodellene kommer bare dit på hver sin
+måte:
+
+- **Spotpris:** beløpet leses inkludert mva (`summary.spot.inclVat`), fordi det
+  er det kraftleverandøren fakturerer utleier. Det er utleiers kostnad, og den
+  viderefaktureres i sin helhet. Tallet er **energi alene** — nettleie og
+  fastledd ligger ikke i det.
+- **Fastpris:** én avtalt pris per kWh mellom utleier og leietaker. Utleier gjør
+  opp differansen mot kraftleverandøren selv. Systemet legger ingenting oppå
+  prisen (`fixed_price_includes_vat` sendes alltid som `true`) og merker den
+  heller ikke «inkl. mva».
 
 Skru på **Bruk simulerte verdier** for å teste hele flyten uten å røre
 tibber-report. Forbruket hentes for oppholdets tidsrom, og kan viderefaktureres
