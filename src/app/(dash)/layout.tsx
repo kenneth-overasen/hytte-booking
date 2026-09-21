@@ -3,6 +3,8 @@ import { requireSession } from '@/lib/auth';
 import { ensureBootstrap } from '@/lib/bootstrap';
 import { getSettings } from '@/lib/settings';
 import { Nav, NAV_ITEMS } from '@/components/nav';
+import { Logo } from '@/components/ui';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { logoutAction } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +21,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="min-h-dvh">
       <header className="no-print sticky top-0 z-20 border-b border-border bg-bg/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5">
-          <Link href="/" className="mr-2 text-sm font-semibold tracking-tight">
+          <Link href="/" className="mr-2 flex items-center gap-2 text-sm font-semibold tracking-tight">
+            <Logo size={26} />
             {property.name || 'Hytteutleie'}
           </Link>
 
@@ -36,6 +39,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 {user.role === 'ADMIN' ? 'Admin' : 'Operatør'}
               </span>
             </Link>
+            <ThemeToggle />
             <form action={logoutAction}>
               <button
                 type="submit"

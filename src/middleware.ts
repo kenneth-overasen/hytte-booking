@@ -36,7 +36,11 @@ export function middleware(request: NextRequest) {
     'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()',
   );
   response.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
-  response.headers.set('Cross-Origin-Resource-Policy', 'same-origin');
+  // The logos are the only resources meant to be embedded from elsewhere: a
+  // dashboard on the local network uses one as the tile icon for this app, and
+  // same-origin would make the browser refuse to paint it there.
+  const isLogo = request.nextUrl.pathname === '/logo.png' || request.nextUrl.pathname === '/logo-dark.png';
+  response.headers.set('Cross-Origin-Resource-Policy', isLogo ? 'cross-origin' : 'same-origin');
 
   // Only meaningful once TLS is terminated in front of the app.
   if (isHttps) {

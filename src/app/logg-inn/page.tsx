@@ -3,7 +3,8 @@ import type { Metadata } from 'next';
 import { getCurrentUser, listLoginOperators } from '@/lib/auth';
 import { ensureBootstrap } from '@/lib/bootstrap';
 import { getSettings } from '@/lib/settings';
-import { Alert } from '@/components/ui';
+import { Alert, Logo } from '@/components/ui';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { LoginForm } from './login-form';
 
 export const metadata: Metadata = { title: 'Logg inn' };
@@ -32,7 +33,8 @@ export default async function LoginPage({
   return (
     <main className="flex min-h-dvh items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <Logo size={72} className="mb-3" />
           <h1 className="text-xl font-semibold tracking-tight">{property.name || 'Hytteutleie'}</h1>
           <p className="mt-1 text-sm text-muted">Logg inn for å administrere bookinger</p>
         </div>
@@ -48,6 +50,10 @@ export default async function LoginPage({
 
         <div className="rounded-xl border border-border bg-surface p-5">
           {bootstrapError ? <Alert kind="error" title="Oppsettet er ikke fullført">{bootstrapError}</Alert> : <LoginForm operators={operators} />}
+        </div>
+
+        <div className="mt-4 flex justify-center">
+          <ThemeToggle />
         </div>
       </div>
     </main>

@@ -178,3 +178,38 @@ export function Stat({ label, value, hint }: { label: string; value: ReactNode; 
     </div>
   );
 }
+
+/**
+ * The cabin logo, in the variant that suits the current theme: the blue artwork
+ * on light backgrounds, the white-and-green one on dark. Both files are 512 px
+ * square and share one crop box, so the swap lands pixel for pixel.
+ *
+ * The swap is CSS, not JavaScript, so it survives a themed first paint and the
+ * toggle takes effect without a re-render. Both files are fetched once and
+ * cached; on a local network that costs less than a flash of the wrong logo.
+ *
+ * public/ keeps the paths quotable: other dashboards point their tile icons
+ * straight at them, which is why middleware lets these two — and only these
+ * two — be read cross-origin.
+ */
+export const LOGO_SRC = '/logo.png';
+export const LOGO_DARK_SRC = '/logo-dark.png';
+
+export function Logo({ size = 28, className = '' }: { size?: number; className?: string }) {
+  const img = 'block h-full w-full';
+  return (
+    <span
+      className={`inline-block shrink-0 select-none ${className}`}
+      style={{ width: size, height: size }}
+    >
+      <img src={LOGO_SRC} alt="" width={size} height={size} className={`${img} dark:hidden`} />
+      <img
+        src={LOGO_DARK_SRC}
+        alt=""
+        width={size}
+        height={size}
+        className={`${img} hidden dark:block`}
+      />
+    </span>
+  );
+}

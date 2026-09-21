@@ -48,6 +48,48 @@ BIND_ADDRESS=0.0.0.0
 APP_PORT=3000
 ```
 
+### Logo og ikon
+
+Logoen finnes i to varianter, begge 512 × 512 med gjennomsiktig bakgrunn og
+samme utsnitt, slik at de bytter plass uten å hoppe:
+
+| Fil                    | Laget for       | Brukes når                        |
+| ---------------------- | --------------- | --------------------------------- |
+| `public/logo.png`      | lys bakgrunn    | lyst tema                         |
+| `public/logo-dark.png` | mørk bakgrunn   | mørkt tema                        |
+
+Appen bytter mellom dem i CSS, så valget følger temaet uten forsinkelse. Begge
+URL-ene kan brukes direkte av andre tjenester, uten pålogging:
+
+```
+http://hytte.lan:3000/logo.png
+http://hytte.lan:3000/logo-dark.png
+```
+
+De er de eneste svarene som sendes med `Cross-Origin-Resource-Policy:
+cross-origin`, slik at et dashbord på en annen adresse får lov til å vise dem.
+Velg varianten som passer bakgrunnen i dashbordet — for Homepage, som er mørkt
+som standard, er det `logo-dark.png`:
+
+```yaml
+- Hytteutleie:
+    href: http://hytte.lan:3000
+    icon: http://hytte.lan:3000/logo-dark.png
+```
+
+Bytter du logo, legg de nye filene på samme sti — da følger både appen og flisen
+på dashbordet etter.
+
+### Lyst og mørkt tema
+
+Appen følger systeminnstillingen. Knappen oppe til høyre (og under
+påloggingsskjemaet) bytter mellom **System**, **Lys** og **Mørk**. Valget lagres
+i nettleseren, per maskin og per bruker — det er ikke en kontoinnstilling, og
+det deles ikke mellom enheter.
+
+Favikonet er unntaket: nettleseren velger variant ut fra systeminnstillingen
+alene, så et pinnet tema slår ikke gjennom på fanen.
+
 ### Enkle passord på et lukket nett
 
 Som standard kreves minst 12 tegn med tall eller spesialtegn. På et lukket,

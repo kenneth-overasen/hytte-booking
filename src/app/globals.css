@@ -18,8 +18,15 @@
   color-scheme: light;
 }
 
+/*
+ * The dark palette applies when the system asks for it, and when the theme
+ * toggle has pinned it. The two selectors cannot be merged — one lives inside
+ * a media query — so the values are written twice on purpose. Changing one
+ * means changing the other, and the same pair of selectors is mirrored in
+ * tailwind.config.ts so the `dark:` utilities switch at the same moment.
+ */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: 12 17 28;
     --surface: 22 30 45;
     --border: 44 57 79;
@@ -29,6 +36,17 @@
     --accent-fg: 8 18 36;
     color-scheme: dark;
   }
+}
+
+:root[data-theme='dark'] {
+  --bg: 12 17 28;
+  --surface: 22 30 45;
+  --border: 44 57 79;
+  --fg: 226 234 246;
+  --muted: 142 157 180;
+  --accent: 106 168 255;
+  --accent-fg: 8 18 36;
+  color-scheme: dark;
 }
 
 html { -webkit-text-size-adjust: 100%; }
@@ -49,10 +67,15 @@ input[type="date"], input[type="time"] { min-height: 2.5rem; }
 
 /* The native date/time picker icon is near-invisible on a dark surface. */
 @media (prefers-color-scheme: dark) {
-  input[type="date"]::-webkit-calendar-picker-indicator,
-  input[type="time"]::-webkit-calendar-picker-indicator {
+  :root:not([data-theme='light']) input[type="date"]::-webkit-calendar-picker-indicator,
+  :root:not([data-theme='light']) input[type="time"]::-webkit-calendar-picker-indicator {
     filter: invert(1) opacity(0.65);
   }
+}
+
+:root[data-theme='dark'] input[type="date"]::-webkit-calendar-picker-indicator,
+:root[data-theme='dark'] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.65);
 }
 
 :focus-visible {
