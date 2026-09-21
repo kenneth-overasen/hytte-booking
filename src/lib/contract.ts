@@ -45,7 +45,7 @@ I leien inngår gass til gassgrill.
 
 {{#if strømKlausul}}Strømforbruk i leieperioden måles og faktureres etter faktisk forbruk i tillegg til leiesummen, med mindre annet er avtalt skriftlig. Forbruket leses av automatisk etter utleie, og trekkes fra depositumet.
 
-{{#if fastStrømpris}}Strøm belastes med {{fastStrømpris}}.{{else}}Strøm belastes etter gjeldende spotpris for prisområdet i leieperioden.{{/if}}{{/if}}
+{{#if fastStrømpris}}Strøm belastes med {{fastStrømpris}}. Dette er en samlet pris per kWh mellom utleier og leietaker, og det kommer ingen avgifter eller merverdiavgift i tillegg.{{else}}Strøm belastes etter gjeldende spotpris for prisområdet i leieperioden, med de avgiftene og den merverdiavgiften utleier selv faktureres av kraftleverandøren. Beløpet er utleiers kostnad og viderefaktureres i sin helhet.{{/if}}{{/if}}
 
 ## 6. Internett
 
@@ -105,6 +105,10 @@ function formatPricePerKwh(kroner: number): string {
  * quote and consumption follows the spot price. The markup is part of the rate
  * only when power is billed separately, which is the same condition under which
  * refreshBookingPower() applies it.
+ *
+ * The rate carries no VAT wording. A fixed price is one agreed amount between
+ * landlord and tenant, and calling it "inkl. mva" would read as a line a
+ * business tenant could deduct — which it is not.
  */
 function fixedPowerRate(
   tibber: z.infer<typeof tibberSchema>,
@@ -114,7 +118,7 @@ function fixedPowerRate(
   const rate = defaults.chargePowerSeparately
     ? tibber.fixedPrice * (1 + defaults.powerMarkupPercent / 100)
     : tibber.fixedPrice;
-  return `${formatPricePerKwh(rate)} ${tibber.fixedPriceIncludesVat ? 'inkl. mva' : 'eks. mva'}`;
+  return formatPricePerKwh(rate);
 }
 
 export function buildContractContext(

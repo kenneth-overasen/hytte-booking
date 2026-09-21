@@ -584,7 +584,6 @@ async function TibberTab() {
             <PowerPriceFields
               useFixedPrice={s.useFixedPrice}
               fixedPrice={s.fixedPrice}
-              fixedPriceIncludesVat={s.fixedPriceIncludesVat}
               costPath={s.costPath}
               costUnit={s.costUnit}
             />

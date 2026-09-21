@@ -44,7 +44,7 @@ const BOOLEAN_FIELDS: Record<SettingsKey, string[]> = {
   contract: ['includePowerClause'],
   signature: ['enabled'],
   notifications: [],
-  tibber: ['enabled', 'mock', 'insecureTls', 'useFixedPrice', 'fixedPriceIncludesVat'],
+  tibber: ['enabled', 'mock', 'insecureTls', 'useFixedPrice'],
   caldav: ['enabled', 'deleteOnCancel', 'includeGuestDetails', 'autoSync'],
   smtp: ['enabled', 'secure'],
   esign: [],

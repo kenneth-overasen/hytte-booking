@@ -176,6 +176,10 @@ function buildRequest(cfg: Cfg, from: Date, to: Date, path: string, accept: stri
 /**
  * Add the fixed-price fields to the request body. Keys the operator has already
  * written into the template win, so the body stays the final say.
+ *
+ * The rate is always sent as VAT-inclusive. A fixed price is the whole amount
+ * the guest owes — the landlord settles the difference with the power company —
+ * so the service must never add VAT on top of it.
  */
 function withFixedPrice(body: string, cfg: Cfg): string {
   if (!cfg.useFixedPrice || cfg.fixedPrice <= 0) return body;
@@ -191,9 +195,7 @@ function withFixedPrice(body: string, cfg: Cfg): string {
   }
 
   if (!('fixed_price' in parsed)) parsed.fixed_price = cfg.fixedPrice;
-  if (!('fixed_price_includes_vat' in parsed)) {
-    parsed.fixed_price_includes_vat = cfg.fixedPriceIncludesVat;
-  }
+  if (!('fixed_price_includes_vat' in parsed)) parsed.fixed_price_includes_vat = true;
   return JSON.stringify(parsed, null, 2);
 }
 

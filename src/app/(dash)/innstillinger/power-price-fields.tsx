@@ -15,13 +15,11 @@ const FIXED_PATH = 'summary.fixed.inclVat';
 export function PowerPriceFields({
   useFixedPrice,
   fixedPrice,
-  fixedPriceIncludesVat,
   costPath,
   costUnit,
 }: {
   useFixedPrice: boolean;
   fixedPrice: number;
-  fixedPriceIncludesVat: boolean;
   costPath: string;
   costUnit: string;
 }) {
@@ -53,14 +51,14 @@ export function PowerPriceFields({
         defaultChecked={useFixedPrice}
         onChange={(e) => toggle(e.target.checked)}
         label="Bruk fastpris per kWh"
-        hint="Gjesten faktureres én avtalt pris i stedet for spotprisen. Prisen sendes med forespørselen, og tjenesten regner ut beløpet."
+        hint="Gjesten faktureres én avtalt pris i stedet for spotprisen. Prisen sendes med forespørselen, og tjenesten regner ut beløpet. Utleier gjør opp differansen mot kraftleverandøren."
       />
 
       {enabled && (
         <div className="space-y-4">
           <Field
             label="Fastpris (kr per kWh)"
-            hint="Ta med nettleie og påslag her — gjesten skal bare forholde seg til én pris."
+            hint="Ta med nettleie, avgifter og påslag her — gjesten skal bare forholde seg til én pris, og systemet legger ingenting oppå."
             className="sm:max-w-md"
           >
             <Input
@@ -73,28 +71,17 @@ export function PowerPriceFields({
               className="tnum"
             />
           </Field>
-          <Checkbox
-            name="fixedPriceIncludesVat"
-            defaultChecked={fixedPriceIncludesVat}
-            label="Prisen inkluderer mva"
-            hint="Slå av hvis mva skal legges til prisen."
-          />
         </div>
       )}
-      {!enabled && (
-        <>
-          <input type="hidden" name="fixedPrice" value={fixedPrice} />
-          <input type="hidden" name="fixedPriceIncludesVat" value={String(fixedPriceIncludesVat)} />
-        </>
-      )}
+      {!enabled && <input type="hidden" name="fixedPrice" value={fixedPrice} />}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
           label="Sti til kostnad i svaret"
           hint={
             enabled
-              ? `Med fastpris ligger beløpet på ${FIXED_PATH}.`
-              : `Med spotpris ligger beløpet på ${SPOT_PATH}.`
+              ? `Med fastpris ligger beløpet på ${FIXED_PATH} — pris × forbruk, uten noe påslag.`
+              : `Med spotpris ligger beløpet på ${SPOT_PATH}. Det er kostnaden kraftleverandøren fakturerer utleier, og den viderefaktureres i sin helhet.`
           }
         >
           <Input

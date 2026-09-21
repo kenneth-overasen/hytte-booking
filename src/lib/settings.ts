@@ -68,18 +68,23 @@ export const tibberSchema = z.object({
   headerName: z.string().default('X-API-Key'),
   username: z.string().default(''),
   password: z.string().default(''),
-  /** Dot-paths into the JSON response. Use [] to sum an array of objects. */
+  /**
+   * Dot-paths into the JSON response. Use [] to sum an array of objects.
+   * The cost path points at an inclVat figure on purpose: on spot price that is
+   * what the power company bills the landlord, so it is the landlord's cost and
+   * is passed on whole — never a VAT line a tenant could deduct.
+   */
   kwhPath: z.string().default('summary.totalConsumption'),
   costPath: z.string().default('summary.spot.inclVat'),
   costUnit: z.enum(['NOK', 'ORE']).default('NOK'),
   /**
    * A fixed price per kWh, passed to the report service so the guest is billed
-   * one all-inclusive rate instead of the raw spot price. When this is on,
-   * fixed_price and fixed_price_includes_vat are added to the request body.
+   * one agreed rate instead of the spot price. The landlord settles the
+   * difference with the power company, so the rate is final: fixed_price goes
+   * out with fixed_price_includes_vat true and nothing is added on top.
    */
   useFixedPrice: z.boolean().default(false),
   fixedPrice: z.coerce.number().min(0).max(100).default(0),
-  fixedPriceIncludesVat: z.boolean().default(true),
   timeoutMs: z.coerce.number().int().min(1000).max(120000).default(15000),
   /** Skip TLS verification for a self-signed home-lab certificate. */
   insecureTls: z.boolean().default(false),
